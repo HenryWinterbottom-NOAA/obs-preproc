@@ -26,8 +26,18 @@
 
 #=======================================================================
 
+bufrio_interface.o: bufrio_interface.F90 \
+		    kinds_interface.o \
+		    namelist_interface.o \
+		    variable_interface.o 
+
 diagnostics_interface.o: diagnostics_interface.F90 \
                          kinds_interface.o
+
+fileio_interface.o: fileio_interface.F90 \
+		    kinds_interface.o \
+		    namelist_interface.o \
+		    variable_interface.o 
 
 kinds_interface.o: kinds_interface.F90
 
@@ -35,4 +45,14 @@ namelist_interface.o: namelist_interface.F90 \
 		      kinds_interface.o 
 
 observations_interface.o: observations_interface.F90 \
-			  kinds_interface.o
+			  kinds_interface.o \
+			  sonde_tempdrop_interface.o 
+
+sonde_tempdrop_interface.o: sonde_tempdrop_interface.F90 \
+			    fileio_interface.o \
+			    kinds_interface.o \
+			    namelist_interface.o \
+			    variable_interface.o
+
+variable_interface.o: variable_interface.F90 \
+		      kinds_interface.o

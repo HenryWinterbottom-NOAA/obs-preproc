@@ -1,10 +1,10 @@
-module observations_interface
+module sonde_tempdrop_interface
 
   !=======================================================================
 
   !$$$ PROGRAM DOCUMENTATION BLOCK
   
-  ! obs-preproc :: observations_interface
+  ! obs-preproc :: sonde_tempdrop_interface
   ! Copyright (C) 2019 Henry R. Winterbottom
 
   ! Email: henry.winterbottom@noaa.gov
@@ -31,16 +31,17 @@ module observations_interface
 
   ! Define associated modules and subroutines
 
+  use fileio_interface
   use kinds_interface
   use namelist_interface
-  use sonde_tempdrop_interface
+  use variable_interface
 
   ! Define interfaces and attributes for module routines
   
   implicit none
   private
-  public :: observations
-
+  public :: sonde_tempdrop
+  
   !-----------------------------------------------------------------------
 
 contains
@@ -49,56 +50,44 @@ contains
 
   ! SUBROUTINE:
 
-  ! observations.f90
+  ! sonde_tempdrop.f90
 
   ! DESCRIPTION:
 
-  ! This is the driver routine for the preparation of all observation
-  ! types.
+  ! This is the driver routine for the decoding and formatting of the
+  ! National Oceanic and Atmospheric Administration (NOAA) Atlantic
+  ! Oceanographic and Meteorological Laboratory (AOML) Hurricane
+  ! Research Division (HRD) TEMPDROP sondes and subqeuently preparing
+  ! a Binary Universal Formatted (BUFR) file.
 
   !-----------------------------------------------------------------------
 
-  subroutine observations()
+  subroutine sonde_tempdrop()
+
+    ! Define variables computed within routine
+
+    type(sonde_struct)                                                  :: sonde
+
+    ! Define counting variables
+
+    integer                                                             :: i
 
     !=====================================================================
 
-    ! Check local variable and proceed accordingly
+    ! Define local variables
 
-    if(is_sonde) call obs_sonde()
+    call fileio_interface_read(sonde)
+
+
+
+    ! Deallocate memory for local variables
+
+    call variable_interface_cleanup_struct(sonde)
     
     !=====================================================================
-    
-  end subroutine observations
+
+  end subroutine sonde_tempdrop
 
   !=======================================================================
 
-  ! SUBROUTINE:
-
-  ! obs_sonde.f90
-
-  ! DESCRIPTION:
-
-  ! This is the driver routine for the preparation of all observations
-  ! collected from sondes; currently the following platforms are
-  ! supported:
-
-  ! + American Oceanographic and Meteorological Laboratory (AOML)
-  !   Hurricane Research Division (HRD) TEMP-DROP sondes.
-
-  !-----------------------------------------------------------------------
-
-  subroutine obs_sonde()
-
-    !=====================================================================
-
-    ! Check local variable and proceed accordingly
-
-    if(is_sonde_tempdrop) call sonde_tempdrop()
-    
-    !=====================================================================
-
-  end subroutine obs_sonde
-  
-  !=======================================================================
-
-end module observations_interface
+end module sonde_tempdrop_interface

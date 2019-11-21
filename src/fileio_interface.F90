@@ -1,10 +1,10 @@
-module observations_interface
+module fileio_interface
 
   !=======================================================================
 
   !$$$ PROGRAM DOCUMENTATION BLOCK
   
-  ! obs-preproc :: observations_interface
+  ! obs-preproc :: fileio_interface
   ! Copyright (C) 2019 Henry R. Winterbottom
 
   ! Email: henry.winterbottom@noaa.gov
@@ -33,14 +33,18 @@ module observations_interface
 
   use kinds_interface
   use namelist_interface
-  use sonde_tempdrop_interface
+  use netcdf
+  use variable_interface
 
   ! Define interfaces and attributes for module routines
   
   implicit none
   private
-  public :: observations
-
+  public :: fileio_interface_read
+  interface fileio_interface_read
+     module procedure read_sonde_filenames
+  end interface fileio_interface_read
+  
   !-----------------------------------------------------------------------
 
 contains
@@ -49,56 +53,77 @@ contains
 
   ! SUBROUTINE:
 
-  ! observations.f90
+  ! read_sonde_filenames.f90
 
   ! DESCRIPTION:
 
-  ! This is the driver routine for the preparation of all observation
-  ! types.
+  ! This subroutine reads into an array sonde filename pathes.
 
-  !-----------------------------------------------------------------------
+  ! INPUT VARIABLES:
 
-  subroutine observations()
+  ! * sonde; a FORTRAN sonde_struct variable.
 
-    !=====================================================================
+  ! OUTPUT VARIABLES:
 
-    ! Check local variable and proceed accordingly
-
-    if(is_sonde) call obs_sonde()
-    
-    !=====================================================================
-    
-  end subroutine observations
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! obs_sonde.f90
-
-  ! DESCRIPTION:
-
-  ! This is the driver routine for the preparation of all observations
-  ! collected from sondes; currently the following platforms are
-  ! supported:
-
-  ! + American Oceanographic and Meteorological Laboratory (AOML)
-  !   Hurricane Research Division (HRD) TEMP-DROP sondes.
-
-  !-----------------------------------------------------------------------
-
-  subroutine obs_sonde()
-
-    !=====================================================================
-
-    ! Check local variable and proceed accordingly
-
-    if(is_sonde_tempdrop) call sonde_tempdrop()
-    
-    !=====================================================================
-
-  end subroutine obs_sonde
+  ! * sonde; a FORTRAN sonde_struct variable containing an array of
+  !   sonde file pathes.
   
+  !-----------------------------------------------------------------------
+
+  subroutine read_sonde_filenames(sonde)
+
+    ! Define variables passed to routine
+
+    type(sonde_struct)                                                  :: sonde
+
+    ! Define variables computed within routine
+
+    character(len=500)                                                  :: dummy
+    
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Define local variables
+
+    sonde%nsondes = 0
+    open(99,file=trim(adjustl(sonde_filelist)),form='formatted')
+1000 read(99,*,end=1001) dummy
+    sonde%nsondes = sonde%nsondes + 1
+    goto 1000
+1001 continue
+    close(99)
+
+    ! Define local variables
+
+    call variable_interface_setup_struct(sonde)
+
+    ! Define local variables
+
+    open(99,file=trim(adjustl(sonde_filelist)),form='formatted')
+
+    ! Loop through local variable
+
+    do i = 1, sonde%nsondes
+
+       ! Define local variables
+
+       read(99,*) sonde%sonde_filename(i)
+       if(debug) write(6,500) trim(adjustl(sonde%sonde_filename(i)))
+
+    end do ! do i = 1, sonde%nsondes
+
+    ! Define local variables
+
+    close(99)
+500 format('READ_SONDE_FILENAMES: Reading in file ',a,' to be processed.')
+
+    !=====================================================================
+
+  end subroutine read_sonde_filenames
+
   !=======================================================================
 
-end module observations_interface
+end module fileio_interface

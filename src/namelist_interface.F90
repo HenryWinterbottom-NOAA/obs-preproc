@@ -41,6 +41,10 @@ module namelist_interface
 
   ! DESCRIPTION (alphabetized):
 
+  ! * analdate; a FORTRAN character string specifying the analysis
+  !   date about which to define the observation times; formatted as,
+  !   assuming UNIX convention, ccyy-mm-dd_HH:MM:SS.
+
   ! * datapath; a FORTRAN character string specifying the full-path to
   !   the directory to contain output files written by the respective
   !   routines.
@@ -87,12 +91,14 @@ module namelist_interface
        & datapath = './'
   character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
+  character(len=19)                                                     :: &
+       & analdate = '2000-01-01_00:00:00'
   logical                                                               :: &
        & debug = .false.
   logical                                                               :: &
-       & is_sonde = .false.
+       & is_sonde = .false. ! NEED
   logical                                                               :: &
-       & is_sonde_tempdrop = .false.
+       & is_sonde_tempdrop = .false. ! NEED
   logical                                                               :: &
        & tempdrop_compute_drift = .false.
   logical                                                               :: &
@@ -101,7 +107,7 @@ module namelist_interface
        & tempdrop_write_hsa_drift = .false.
   logical                                                               :: &
        & tempdrop_write_nc_skewt = .false.
-  namelist /share/    datapath, debug, is_sonde
+  namelist /share/    analdate, datapath, debug, is_sonde
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_write_hsa,                       &
        & tempdrop_write_hsa_drift, tempdrop_write_nc_skewt
