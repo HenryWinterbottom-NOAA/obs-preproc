@@ -1,0 +1,12 @@
+data/
+bin/
+build/
+data/
+*.mod
+*.o
+log.*.exe
+doc/tex/*
+!doc/tex/templates
+!doc/tex/user-guide.tex
+hwrf.json.b
+data

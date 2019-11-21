@@ -1,0 +1,22 @@
+# General rules.
+
+RM            = /bin/rm -f
+MKDIR         = /bin/mkdir -p
+
+# Compilers and compiler options.
+
+F90           = ifort
+F77           = ifort
+DEBUG         = -C -g -traceback 
+FCFFLAGS      = -O3 -heap-arrays -mkl=sequential -mcmodel=large -integer-size 32 -real-size 32 $(DEBUG)
+#FCFFLAGS      = -O3 -mkl=sequential -mcmodel=large -march=native -assume byterecl $(DEBUG)
+
+# Compile time libraries.
+
+NWP_WMS_UTILS = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs 
+BUFR          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+FSON          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+NETCDF        = /apps/netcdf/4.2.1.1-intel
+SLATEC        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+SLINT         = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+SPLINE        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs

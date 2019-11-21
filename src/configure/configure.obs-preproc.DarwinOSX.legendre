@@ -1,0 +1,21 @@
+# General rules.
+
+RM            = /bin/rm -f
+MKDIR         = /bin/mkdir -p
+
+# Compilers and compiler options.
+
+F90           = ifort
+F77           = ifort
+DEBUG         = -C -g -traceback 
+FCFFLAGS      = -O3 -fp-model precise -assume byterecl $(DEBUG)
+
+# Compile time libraries.
+
+NWP_WMS_UTILS = /Users/henry.winterbottom/software/nwp-libs
+BUFR          = /Users/henry.winterbottom/software/nwp-libs
+FSON          = /Users/henry.winterbottom/software/nwp-libs
+NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran-4.4.5
+SLATEC        = /Users/henry.winterbottom/software/nwp-libs
+SLINT         = /Users/henry.winterbottom/software/nwp-libs
+SPLINE        = /Users/henry.winterbottom/software/nwp-libs
