@@ -18,4 +18,5 @@ FSON          = /Users/henry.winterbottom/software/nwp-libs
 NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran-4.4.5
 SLATEC        = /Users/henry.winterbottom/software/nwp-libs
 SLINT         = /Users/henry.winterbottom/software/nwp-libs
+SONDELIB      = /Users/henry.winterbottom/software/nwp-libs
 SPLINE        = /Users/henry.winterbottom/software/nwp-libs

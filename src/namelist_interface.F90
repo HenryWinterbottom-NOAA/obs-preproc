@@ -45,6 +45,13 @@ module namelist_interface
   !   date about which to define the observation times; formatted as,
   !   assuming UNIX convention, ccyy-mm-dd_HH:MM:SS.
 
+  ! * bufr_filepath; a FORTRAN character string specifying the
+  !   full-path to the BUFR file to be written (or appended) to.
+
+  ! * bufr_tblpath; a FORTRAN character string specifying the
+  !   full-path to the external file containing the BUFR table to be
+  !   written (or appended) to the output BUFR file. 
+  
   ! * datapath; a FORTRAN character string specifying the full-path to
   !   the directory to contain output files written by the respective
   !   routines.
@@ -88,9 +95,15 @@ module namelist_interface
   ! Define local variables
 
   character(len=500)                                                    :: &
+       & bufr_filepath = 'NOT USED'
+  character(len=500)                                                    :: &
+       & bufr_tblpath = 'NOT USED'
+  character(len=500)                                                    :: &
        & datapath = './'
   character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
+  character(len=500)                                                    :: &
+       & tempdrop_hsa_table_file = './tempdrop-hsa.table' ! NEED
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
   logical                                                               :: &
@@ -101,16 +114,10 @@ module namelist_interface
        & is_sonde_tempdrop = .false. ! NEED
   logical                                                               :: &
        & tempdrop_compute_drift = .false.
-  logical                                                               :: &
-       & tempdrop_write_hsa = .false.
-  logical                                                               :: &
-       & tempdrop_write_hsa_drift = .false.
-  logical                                                               :: &
-       & tempdrop_write_nc_skewt = .false.
   namelist /share/    analdate, datapath, debug, is_sonde
+  namelist /bufrio/   bufr_filepath, bufr_tblpath  
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
-       & tempdrop_compute_drift, tempdrop_write_hsa,                       &
-       & tempdrop_write_hsa_drift, tempdrop_write_nc_skewt
+       & tempdrop_compute_drift, tempdrop_hsa_table_file
   
   !-----------------------------------------------------------------------
 

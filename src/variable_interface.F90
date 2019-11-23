@@ -41,20 +41,35 @@ module variable_interface
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
+  public :: hsa_struct
+  public :: interp_p_struct
+  public :: interp_spline_struct
+  public :: meteo_struct
   public :: obs_flag_struct
   public :: sonde_struct
   public :: spval
+  public :: statgrid_struct
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
+     module procedure finalize_hsa_struct
+     module procedure finalize_interp_p_struct
+     module procedure finalize_interp_spline_struct
+     module procedure finalize_meteo_struct
      module procedure finalize_obs_flag_struct
      module procedure finalize_sonde_struct
+     module procedure finalize_statgrid_struct
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
+     module procedure initialize_hsa_struct
+     module procedure initialize_interp_p_struct
+     module procedure initialize_interp_spline_struct
+     module procedure initialize_meteo_struct
      module procedure initialize_obs_flag_struct
      module procedure initialize_sonde_struct
+     module procedure initialize_statgrid_struct
   end interface variable_interface_setup_struct
 
   ! Define local variables
@@ -77,6 +92,80 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
+  type hsa_struct
+     character(len=4),          dimension(:),               allocatable :: tail
+     character(len=500)                                                 :: filename
+     real(r_double)                                                     :: rel_julian
+     real(r_kind),              dimension(:),               allocatable :: lat
+     real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: fallrate
+     real(r_kind),              dimension(:),               allocatable :: p
+     real(r_kind),              dimension(:),               allocatable :: rh
+     real(r_kind),              dimension(:),               allocatable :: t
+     real(r_kind),              dimension(:),               allocatable :: u
+     real(r_kind),              dimension(:),               allocatable :: v
+     real(r_kind),              dimension(:),               allocatable :: z
+     real(r_kind),              dimension(:),               allocatable :: time 
+     real(r_kind),              dimension(:),               allocatable :: yymmdd
+     real(r_kind)                                                       :: pmax
+     real(r_kind)                                                       :: pmin
+     real(r_kind)                                                       :: psfc
+     real(r_kind)                                                       :: rellon
+     real(r_kind)                                                       :: rellat
+     real(r_kind)                                                       :: spglon
+     real(r_kind)                                                       :: spglat                                                     
+     integer,                   dimension(:),               allocatable :: gmt
+     integer,                   dimension(:),               allocatable :: wx
+     integer                                                            :: dd
+     integer                                                            :: hh
+     integer                                                            :: logtime
+     integer                                                            :: mm
+     integer                                                            :: nmnlevs
+     integer                                                            :: nn
+     integer                                                            :: nz
+     integer                                                            :: reltime
+     integer                                                            :: spgtime
+     integer                                                            :: ss
+     integer                                                            :: yyyy
+  end type hsa_struct             ! type hsa_struct
+  type interp_p_struct 
+     real(r_kind),              dimension(:),               allocatable :: var
+     real(r_kind),              dimension(:),               allocatable :: p
+     real(r_kind)                                                       :: psfc
+     integer                                                            :: nz
+  end type interp_p_struct        ! type interp_p_struct
+  type interp_spline_struct
+     real(r_kind),              dimension(:),               allocatable :: xa
+     real(r_kind),              dimension(:),               allocatable :: ya
+     real(r_kind)                                                       :: x
+     real(r_kind)                                                       :: y
+     integer                                                            :: n    
+  end type interp_spline_struct   ! type interp_spline_struct
+  type meteo_struct
+     character(len=500)                                                 :: tempdrop_name
+     character(len=5)                                                   :: acid
+     character(len=2)                                                   :: obnum
+     real(r_double),            dimension(:),               allocatable :: dwpt
+     real(r_double),            dimension(:),               allocatable :: lat
+     real(r_double),            dimension(:),               allocatable :: lon
+     real(r_double),            dimension(:),               allocatable :: p
+     real(r_double),            dimension(:),               allocatable :: q
+     real(r_double),            dimension(:),               allocatable :: rh
+     real(r_double),            dimension(:),               allocatable :: t
+     real(r_double),            dimension(:),               allocatable :: thta
+     real(r_double),            dimension(:),               allocatable :: thte
+     real(r_double),            dimension(:),               allocatable :: thtv
+     real(r_double),            dimension(:),               allocatable :: u
+     real(r_double),            dimension(:),               allocatable :: v
+     real(r_double),            dimension(:),               allocatable :: wdir
+     real(r_double),            dimension(:),               allocatable :: wspd
+     real(r_double),            dimension(:),               allocatable :: z
+     real(r_double),            dimension(:),               allocatable :: jdate
+     real(r_kind),              dimension(:),               allocatable :: dist
+     real(r_kind),              dimension(:),               allocatable :: head
+     real(r_double)                                                     :: psfc
+     integer                                                            :: nz
+  end type meteo_struct           ! type meteo_struct  
   type obs_flag_struct
      character(len=500)                                                 :: filename
      character(len=10),         dimension(:),               allocatable :: mneumonic
@@ -86,9 +175,19 @@ module variable_interface
      integer                                                            :: nflag
   end type obs_flag_struct        ! type obs_flag_struct
   type sonde_struct
-     character(len=500),        dimension(:),               allocatable :: sonde_filename
+     character(len=500),        dimension(:),               allocatable :: filename
      integer                                                            :: nsondes
   end type sonde_struct           ! type sonde_struct
+  type statgrid_struct
+     real(r_kind),              dimension(:),               allocatable :: var
+     real(r_kind)                                                       :: mean
+     real(r_kind)                                                       :: vari
+     real(r_kind)                                                       :: stdev
+     real(r_kind)                                                       :: varmin
+     real(r_kind)                                                       :: varmax
+     integer                                                            :: n
+     integer                                                            :: nvals
+  end type statgrid_struct        ! type statgrid_struct
   integer,        parameter                                             :: bufr_mxlv  = 200
   integer,        parameter                                             :: bufr_mxmn  = 35
 
@@ -131,6 +230,169 @@ contains
     !=====================================================================
 
   end subroutine finalize_bufr_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_hsa_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! hsa_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN hsa_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_hsa_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%tail))     deallocate(grid%tail)
+    if(allocated(grid%lat))      deallocate(grid%lat)
+    if(allocated(grid%lon))      deallocate(grid%lon)
+    if(allocated(grid%fallrate)) deallocate(grid%fallrate)
+    if(allocated(grid%p))        deallocate(grid%p)
+    if(allocated(grid%rh))       deallocate(grid%rh)
+    if(allocated(grid%t))        deallocate(grid%t)
+    if(allocated(grid%u))        deallocate(grid%u)
+    if(allocated(grid%v))        deallocate(grid%v)
+    if(allocated(grid%yymmdd))   deallocate(grid%yymmdd)
+    if(allocated(grid%z))        deallocate(grid%z)
+    if(allocated(grid%gmt))      deallocate(grid%gmt)
+    if(allocated(grid%wx))       deallocate(grid%wx)
+    if(allocated(grid%time))     deallocate(grid%time)
+
+    !=====================================================================
+    
+  end subroutine finalize_hsa_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_interp_p_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! interp_p_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_p_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_interp_p_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(interp_p_struct)                                               :: grid
+    logical                                                             :: debug
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%p))   deallocate(grid%p)
+    if(allocated(grid%var)) deallocate(grid%var)
+
+    !=====================================================================
+    
+  end subroutine finalize_interp_p_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_interp_spline_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! interp_spline_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_spline_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_interp_spline_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(interp_spline_struct)                                          :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%xa)) deallocate(grid%xa)
+    if(allocated(grid%ya)) deallocate(grid%ya)
+
+    !=====================================================================
+    
+  end subroutine finalize_interp_spline_struct  
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_meteo_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! meteo_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN meteo_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_meteo_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(meteo_struct)                                                  :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%dwpt))  deallocate(grid%dwpt)  
+    if(allocated(grid%lat))   deallocate(grid%lat)
+    if(allocated(grid%lon))   deallocate(grid%lon)
+    if(allocated(grid%p))     deallocate(grid%p)
+    if(allocated(grid%q))     deallocate(grid%q)
+    if(allocated(grid%rh))    deallocate(grid%rh)
+    if(allocated(grid%t))     deallocate(grid%t)
+    if(allocated(grid%thta))  deallocate(grid%thta)
+    if(allocated(grid%thte))  deallocate(grid%thte)
+    if(allocated(grid%thtv))  deallocate(grid%thtv)
+    if(allocated(grid%u))     deallocate(grid%u)
+    if(allocated(grid%v))     deallocate(grid%v)
+    if(allocated(grid%wdir))  deallocate(grid%wdir)
+    if(allocated(grid%wspd))  deallocate(grid%wspd)
+    if(allocated(grid%z))     deallocate(grid%z)
+    if(allocated(grid%jdate)) deallocate(grid%jdate)
+
+    !=====================================================================
+    
+  end subroutine finalize_meteo_struct  
 
   !=======================================================================
 
@@ -195,11 +457,44 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(allocated(grid%sonde_filename)) deallocate(grid%sonde_filename)
+    if(allocated(grid%filename)) deallocate(grid%filename)
     
     !=====================================================================
 
   end subroutine finalize_sonde_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_statgrid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! statgrid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN statgrid_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_statgrid_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(statgrid_struct)                                               :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%var)) deallocate(grid%var)
+
+    !=====================================================================
+    
+  end subroutine finalize_statgrid_struct  
 
   !=======================================================================
 
@@ -255,6 +550,208 @@ contains
     !=====================================================================
 
   end subroutine initialize_bufr_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_hsa_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! hsa_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN hsa_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN hsa_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_hsa_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: grid    
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%tail))     allocate(grid%tail(grid%nz))
+    if(.not. allocated(grid%lat))      allocate(grid%lat(grid%nz))
+    if(.not. allocated(grid%lon))      allocate(grid%lon(grid%nz))
+    if(.not. allocated(grid%fallrate)) allocate(grid%fallrate(grid%nz))
+    if(.not. allocated(grid%p))        allocate(grid%p(grid%nz))
+    if(.not. allocated(grid%rh))       allocate(grid%rh(grid%nz))
+    if(.not. allocated(grid%t))        allocate(grid%t(grid%nz))
+    if(.not. allocated(grid%u))        allocate(grid%u(grid%nz))
+    if(.not. allocated(grid%v))        allocate(grid%v(grid%nz))
+    if(.not. allocated(grid%yymmdd))   allocate(grid%yymmdd(grid%nz))
+    if(.not. allocated(grid%z))        allocate(grid%z(grid%nz))
+    if(.not. allocated(grid%gmt))      allocate(grid%gmt(grid%nz))
+    if(.not. allocated(grid%wx))       allocate(grid%wx(grid%nz))
+    if(.not. allocated(grid%time))     allocate(grid%time(grid%nz))
+
+    !=====================================================================
+    
+  end subroutine initialize_hsa_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_interp_p_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! interp_p_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_p_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_p_struct variable containing allocated
+  !   and initialized variable arrays.
+  
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_interp_p_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(interp_p_struct)                                               :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%p))   allocate(grid%p(grid%nz))
+    if(.not. allocated(grid%var)) allocate(grid%var(grid%nz))
+
+    !=====================================================================
+    
+  end subroutine initialize_interp_p_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_interp_spline_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! interp_spline_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_spline_struct variable.
+  
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN interp_spline_struct variable containing
+  !   allocated and initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_interp_spline_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(interp_spline_struct)                                          :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%xa)) allocate(grid%xa(grid%n))
+    if(.not. allocated(grid%ya)) allocate(grid%ya(grid%n))
+
+    !=====================================================================
+    
+  end subroutine initialize_interp_spline_struct
+  
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! initialize_meteo_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! meteo_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN meteo_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN meteo_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_meteo_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(meteo_struct)                                                  :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%dwpt))  allocate(grid%dwpt(grid%nz))  
+    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%nz))
+    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%nz))
+    if(.not. allocated(grid%p))     allocate(grid%p(grid%nz))
+    if(.not. allocated(grid%q))     allocate(grid%q(grid%nz))
+    if(.not. allocated(grid%rh))    allocate(grid%rh(grid%nz))
+    if(.not. allocated(grid%t))     allocate(grid%t(grid%nz))
+    if(.not. allocated(grid%thta))  allocate(grid%thta(grid%nz))
+    if(.not. allocated(grid%thte))  allocate(grid%thte(grid%nz))
+    if(.not. allocated(grid%thtv))  allocate(grid%thtv(grid%nz))
+    if(.not. allocated(grid%u))     allocate(grid%u(grid%nz))
+    if(.not. allocated(grid%v))     allocate(grid%v(grid%nz))
+    if(.not. allocated(grid%wdir))  allocate(grid%wdir(grid%nz))
+    if(.not. allocated(grid%wspd))  allocate(grid%wspd(grid%nz))
+    if(.not. allocated(grid%z))     allocate(grid%z(grid%nz))
+    if(.not. allocated(grid%jdate)) allocate(grid%jdate(grid%nz))
+    
+    ! Define local variables
+
+    grid%dwpt  = spval
+    grid%lat   = spval
+    grid%lon   = spval
+    grid%p     = spval
+    grid%q     = spval
+    grid%rh    = spval
+    grid%t     = spval
+    grid%thta  = spval
+    grid%thte  = spval
+    grid%thtv  = spval
+    grid%u     = spval
+    grid%v     = spval
+    grid%wdir  = spval
+    grid%wspd  = spval
+    grid%z     = spval
+    grid%jdate = spval
+    grid%psfc  = spval
+
+    !=====================================================================
+    
+  end subroutine initialize_meteo_struct
 
   !=======================================================================
 
@@ -335,12 +832,50 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(grid%sonde_filename))                               &
-         & allocate(grid%sonde_filename(grid%nsondes))
+    if(.not. allocated(grid%filename))                                     &
+         & allocate(grid%filename(grid%nsondes))
 
     !=====================================================================
 
   end subroutine initialize_sonde_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_statgrid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! statgrid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN statgrid_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN statgrid_struct variable containing allocated
+  !   and initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_statgrid_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(statgrid_struct)                                               :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%var)) allocate(grid%var(grid%n))
+
+    !=====================================================================
+    
+  end subroutine initialize_statgrid_struct  
 
   !=======================================================================
 
