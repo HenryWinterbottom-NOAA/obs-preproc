@@ -40,7 +40,12 @@ diagnostics_interface.o: diagnostics_interface.F90 \
 fileio_interface.o: fileio_interface.F90 \
 		    kinds_interface.o \
 		    namelist_interface.o \
-		    variable_interface.o 
+		    variable_interface.o
+
+grid_methods_interface.o: grid_methods_interface.F90 \
+			  constants_interface.o \
+			  kinds_interface.o \
+			  variable_interface.o
 
 kinds_interface.o: kinds_interface.F90
 
@@ -61,7 +66,9 @@ observations_interface.o: observations_interface.F90 \
 			  sonde_tempdrop_interface.o 
 
 sonde_tempdrop_interface.o: sonde_tempdrop_interface.F90 \
+			    constants_interface.o \
 			    fileio_interface.o \
+			    grid_methods_interface.o \
 			    kinds_interface.o \
 			    meteo_methods_interface.o \
 			    namelist_interface.o \

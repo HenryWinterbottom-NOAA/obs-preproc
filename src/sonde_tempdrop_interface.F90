@@ -31,7 +31,9 @@ module sonde_tempdrop_interface
 
   ! Define associated modules and subroutines
 
+  use constants_interface
   use fileio_interface
+  use grid_methods_interface
   use kinds_interface
   use math_methods_interface
   use meteo_methods_interface
@@ -106,7 +108,7 @@ contains
 
           ! Compute local variables
 
-          call drift(hsa(i),meteo)
+          call sonde_drift(hsa(i),meteo)
 
        end if ! if(tempdrop_compute_drift)
 
@@ -146,7 +148,10 @@ contains
 
   ! DESCRIPTION:
 
-  !
+  ! This subroutine computes the drift-correction estimate for the
+  ! sonde trajectory; the updated geographical locations and time
+  ! information are written to the respective FORTRAN hsa_struct
+  ! variables.
 
   ! INPUT VARIABLES:
 
@@ -158,147 +163,188 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine compute_drift(hsa,meteo)
+  subroutine compute_drift(hsa,hsa_interp,meteo)
 
+    ! Define variables passed to routine
 
+    type(hsa_struct)                                                    :: hsa
+    type(hsa_struct)                                                    :: hsa_interp
+    type(meteo_struct)                                                  :: meteo
 
+    ! Define variables computed within routine
 
-    call time_methods_hmsts(hsa_interp_grid%logtime,time_hmsts)
+    type(grid_struct)                                                   :: grid
+    type(statgrid_struct)                                               :: statgrid
+    character(len=8)                                                    :: yymmdd
+    character(len=4)                                                    :: hhnn
+    real(r_double)                                                      :: julian_time
+    real(r_double)                                                      :: spg_julian
+    real(r_kind)                                                        :: avgp
+    real(r_kind)                                                        :: avgt
+    real(r_kind)                                                        :: dtime
+    real(r_kind)                                                        :: fallrate
+    real(r_kind)                                                        :: gsndfall2
+    real(r_kind)                                                        :: norma
+    real(r_kind)                                                        :: normb
+    real(r_kind)                                                        :: plat
+    real(r_kind)                                                        :: plon
+    real(r_kind)                                                        :: ppres
+    real(r_kind)                                                        :: ptemp
+    real(r_kind)                                                        :: ptime
+    real(r_kind)                                                        :: spgtime
+    real(r_kind)                                                        :: timediff
+    integer                                                             :: dd
+    integer                                                             :: hh
+    integer                                                             :: mm
+    integer                                                             :: nn
+    integer                                                             :: rel_hmsts
+    integer                                                             :: spg_hmsts
+    integer                                                             :: ss
+    integer                                                             :: time_hmsts
+    integer                                                             :: time_sthms
+    integer                                                             :: yyyy
+
+    ! Define counting variables
+
+    integer                                                             :: i, j
+    
+    !=====================================================================
 
     ! Define local variables
 
-    hsa_interp_grid%fallrate = spval
+    call time_methods_hmsts(hsa_interp%logtime,time_hmsts)
+    hsa_interp%fallrate = spval
 
     ! Check local variable and proceed accordingly
 
-    if(hsa_grid%spgtime .eq. -999) then
+    if(hsa_interp%spgtime .eq. -999) then
 
        ! Define local variables
 
-       statgrid%n = hsa_interp_grid%nz
+       statgrid%n = hsa_interp%nz
        call variable_interface_setup_struct(statgrid)
-       statgrid%var = hsa_interp_grid%t
+       statgrid%var = hsa_interp%t
        where(statgrid%var .le. -90.0) statgrid%var = spval     
 
        ! Compute local variables
 
-       avgp     = 0.5*(pmax + pmin)
+       avgp     = 0.5*(hsa_interp%pmax + hsa_interp%pmin)
        call math_methods_stats(statgrid)
        avgt     = statgrid%mean
-       fallrate = gsndfall2(avgp,avgt,spval,hsa_interp_grid%psfc,         &
-            & .true.)/100.0
-       call time_methods_hmsts(hsa_interp_grid%logtime,time_hmsts)
-       spgtime  = float(time_hmsts) + (pmax-pmin)/fallrate
+       fallrate = gsndfall2(avgp,avgt,spval,hsa_interp%psfc,.true.)/100.0       
+       call time_methods_hmsts(hsa_interp%logtime,time_hmsts)
+       spgtime  = float(time_hmsts) + (hsa_interp%pmax -                   &
+            & hsa_interp%pmin)/fallrate
        call time_methods_sthms(int(spgtime),time_sthms)
 
        ! Define local variables
 
-       hsa_interp_grid%spgtime = time_sthms
+       hsa_interp%spgtime = time_sthms
 
        ! Deallocate memory for local variables
 
        call variable_interface_cleanup_struct(statgrid)
 
-    end if ! if(hsa_interp_grid%spgtime .eq. -999)
+    end if ! if(hsa_interp%spgtime .eq. -999)
 
     ! Compute local variables
 
-    call time_methods_hmsts(hsa_interp_grid%reltime,time_hmsts)
+    call time_methods_hmsts(hsa_interp%reltime,time_hmsts)
 
     ! Define local variables
 
-    hsa_interp_grid%time     = time_hmsts
-    hsa_interp_grid%fallrate = 0.0
+    hsa_interp%time     = time_hmsts
+    hsa_interp%fallrate = 0.0
 
     ! Loop through local variable
 
-    do i = 1, hsa_interp_grid%nz
+    do i = 1, hsa_interp%nz
 
        ! Check local variable and proceed accordingly
 
-       if(hsa_interp_grid%p(i) .ge. pmin .and. hsa_interp_grid%t(i)       &
-            & .ge. -90.0) then
+       if((hsa_interp%p(i) .ge. hsa_interp%pmin) .and. (hsa_interp%t(i)    &
+            & .ge. -90.0)) then
 
 	    ! Define local variables
 
-	    ppres = hsa_interp_grid%p(i)
-	    ptemp = hsa_interp_grid%t(i)
-	    goto 600
+	    ppres = hsa_interp%p(i)
+	    ptemp = hsa_interp%t(i)
+	    goto 1000
 
-       end if ! if(hsa_interp_grid%p(i) .ge. pmin .and. 
-              ! hsa_interp_grid%t(i) .ge. -90.0)
+       end if ! if((hsa_interp%p(i) .ge. hsa_interp%pmin) .and.
+              ! (hsa_interp%t(i) .ge. -90.0))
 
-    end do ! do i = 1, hsa_interp_grid%nz
+    end do ! do i = 1, hsa_interp%nz
 
     ! Define local variables
 
-600 continue
-    call time_methods_hmsts(hsa_interp_grid%reltime,time_hmsts)
-    ptime                                    = float(time_hmsts)
-    hsa_interp_grid%time(hsa_interp_grid%nz) = ptime
+1000 continue
+    call time_methods_hmsts(hsa_interp%reltime,time_hmsts)
+    ptime                          = float(time_hmsts)
+    hsa_interp%time(hsa_interp%nz) = ptime
 
     ! Loop through local variable
 
-    do i = (hsa_interp_grid%nz - 1), 1, -1
+    do i = (hsa_interp%nz - 1), 1, -1
 
        ! Check local variable and proceed accordingly
 
-       if(hsa_interp_grid%t(i) .ge. -90.0) then
+       if(hsa_interp%t(i) .ge. -90.0) then
 
        	    ! Define local variables
        
-	    avgp = 0.5*(ppres + hsa_interp_grid%p(i))
-            avgt = 0.5*(ptemp + hsa_interp_grid%t(i))
+	    avgp = 0.5*(ppres + hsa_interp%p(i))
+            avgt = 0.5*(ptemp + hsa_interp%t(i))
 
             ! Compute local variables
-          
-            hsa_interp_grid%fallrate(i) = gsndfall2(avgp,avgt,spval,      &
-                 & hsa_interp_grid%psfc,.true.)/100.0
-            timediff                    = (hsa_interp_grid%p(i) - ppres)/ &
-                 & hsa_interp_grid%fallrate(i)
-            timediff                    = max(timediff,0.0)
-            hsa_interp_grid%time(i)     = ptime - timediff
+            
+            hsa_interp%fallrate(i) = gsndfall2(avgp,avgt,spval,            &
+                 & hsa_interp%psfc,.true.)/100.0
+            timediff               = (hsa_interp%p(i) - ppres)/            &
+                 & hsa_interp%fallrate(i)
+            timediff               = max(timediff,0.0)
+            hsa_interp%time(i)     = ptime - timediff
 
             ! Define local variables
 
-	    ppres = hsa_interp_grid%p(i)
-	    ptemp = hsa_interp_grid%t(i)
-            ptime = hsa_interp_grid%time(i)
+	    ppres = hsa_interp%p(i)
+	    ptemp = hsa_interp%t(i)
+            ptime = hsa_interp%time(i)
 
-       end if ! if(hsa_interp_grid%t(i) .ge. -90.0)
+       end if ! if(hsa_interp%t(i) .ge. -90.0)
 
-    end do ! do i = (hsa_interp_grid%nz - 1), 1, -1
+    end do ! do i = (hsa_interp%nz - 1), 1, -1
 
     ! Define local variables
 
-    plon                 = hsa_grid%rellon
-    plat                 = hsa_grid%rellat
-    ptime                = hsa_interp_grid%time(hsa_interp_grid%nz)
-    hsa_interp_grid%lon  = plon
-    hsa_interp_grid%lat  = plat
+    plat           = hsa%rellat
+    plon           = hsa%rellon
+    ptime          = hsa_interp%time(hsa_interp%nz)
+    hsa_interp%lon = plon
+    hsa_interp%lat = plat
 
     ! Loop through local variable
 
-    do i = hsa_interp_grid%nz, 2, -1
+    do i = hsa_interp%nz, 2, -1
 
        ! Check local variable and proceed accordingly
 
-       if(hsa_interp_grid%p(i) .le. pmax .and. hsa_interp_grid%p(i) .ge.  &
-            & pmin .and. (hsa_interp_grid%tail(i) .eq. 'MANL' .or.        &
-            & hsa_interp_grid%tail(i) .eq. 'SIGL')) then
+       if((hsa_interp%p(i) .le. hsa_interp%pmax) .and. (hsa_interp%p(i)    &
+            & .ge. hsa_interp%pmin) .and. ((hsa_interp%tail(i) .eq.        &
+            & 'MANL') .or. (hsa_interp%tail(i) .eq. 'SIGL'))) then
 
           ! Define local variables
 
-          grid%lon = -1.0*plon
           grid%lat = plat
+          grid%lon = -1.0*plon
 
           ! Compute local variables
 
-          dtime     = ptime - hsa_interp_grid%time(i)
-          grid%head = 270.0 + atan2(hsa_interp_grid%v(i),                 &
-               & hsa_interp_grid%u(i))*rad2deg
-          grid%dist = sqrt(hsa_interp_grid%u(i)**2.0 +                    &
-               & hsa_interp_grid%v(i)**2.0)*dtime
+          dtime     = ptime - hsa_interp%time(i)
+          grid%head = 270.0 + atan2(hsa_interp%v(i),hsa_interp%u(i))*      &
+               & rad2deg
+          grid%dist = sqrt(hsa_interp%u(i)**2.0 + hsa_interp%v(i)**2.0)*   &
+               & dtime
 
           ! Compute local variables
 
@@ -306,43 +352,43 @@ contains
 
           ! Define local variables
 
-          hsa_interp_grid%lon(i) = -1.0*grid%lon
-          hsa_interp_grid%lat(i) = grid%lat
-          ptime                  = hsa_interp_grid%time(i)
-          plon                   = hsa_interp_grid%lon(i)
-          plat                   = hsa_interp_grid%lat(i)
+          hsa_interp%lon(i) = -1.0*grid%lon
+          hsa_interp%lat(i) = grid%lat
+          plat              = hsa_interp%lat(i)
+          plon              = hsa_interp%lon(i)
+          ptime             = hsa_interp%time(i)
 
-       else if(hsa_interp_grid%p(i) .eq. 1070.0) then 
-
-          ! Define local variables
-
-          hsa_interp_grid%lon(i) = hsa_interp_grid%spglon
-          hsa_interp_grid%lat(i) = hsa_interp_grid%spglat
-
-       else   ! if(hsa_interp_grid%p(i) .le. pmax
-              ! .and. hsa_interp_grid%p(i) .ge. pmin
-              ! .and. (hsa_interp_grid%tail(i) .eq. 'MANL'
-              ! .or. hsa_interp_grid%tail(i) .eq. 'SIGL'))
+       else if(hsa_interp%p(i) .eq. 1070.0) then 
 
           ! Define local variables
 
-          hsa_interp_grid%lon(i) = hsa_grid%lon(i)
-          hsa_interp_grid%lat(i) = hsa_grid%lat(i)
+          hsa_interp%lon(i) = hsa_interp%spglon
+          hsa_interp%lat(i) = hsa_interp%spglat
 
-       end if ! if(hsa_interp_grid%p(i) .le. pmax
-              ! .and. hsa_interp_grid%p(i) .ge. pmin
-              ! .and. (hsa_interp_grid%tail(i) .eq. 'MANL'
-              ! .or. hsa_interp_grid%tail(i) .eq. 'SIGL'))
+       else   ! if((hsa_interp%p(i) .le. hsa_interp%pmax)
+              ! .and. (hsa_interp%p(i) .ge. hsa_interp%pmin)
+              ! .and. ((hsa_interp%tail(i) .eq. 'MANL')
+              ! .or. (hsa_interp%tail(i) .eq. 'SIGL')))
 
-    end do ! do i = hsa_interp_grid%nz, 2, -1
+          ! Define local variables
+
+          hsa_interp%lon(i) = hsa%lon(i)
+          hsa_interp%lat(i) = hsa%lat(i)
+
+       end if ! if((hsa_interp%p(i) .le. hsa_interp%pmax)
+              ! .and. (hsa_interp%p(i) .ge. hsa_interp%pmin)
+              ! .and. ((hsa_interp%tail(i) .eq. 'MANL')
+              ! .or. (hsa_interp%tail(i) .eq. 'SIGL')))
+
+    end do ! do i = hsa_interp%nz, 2, -1
 
     ! Define local variables
 
-    statgrid%n   = hsa_interp_grid%nz
+    statgrid%n   = hsa_interp%nz
     call variable_interface_setup_struct(statgrid)
-    norma        = min(hsa_grid%rellon,hsa_grid%spglon)
-    normb        = max(hsa_grid%rellon,hsa_grid%spglon)
-    statgrid%var = hsa_interp_grid%lon
+    norma        = min(hsa%rellon,hsa%spglon)
+    normb        = max(hsa%rellon,hsa%spglon)
+    statgrid%var = hsa_interp%lon
 
     ! Compute local variables
 
@@ -350,7 +396,7 @@ contains
 
     ! Define local variables
 
-    if(if_normalize) hsa_interp_grid%lon = statgrid%var
+    if(tempdrop_normalize) hsa_interp%lon = statgrid%var
 
     ! Deallocate memory for local variables
 
@@ -358,11 +404,11 @@ contains
 
     ! Define local variables
 
-    statgrid%n   = hsa_interp_grid%nz
+    statgrid%n   = hsa_interp%nz
     call variable_interface_setup_struct(statgrid)
-    norma        = min(hsa_grid%rellat,hsa_grid%spglat)
-    normb        = max(hsa_grid%rellat,hsa_grid%spglat)
-    statgrid%var = hsa_interp_grid%lat
+    norma        = min(hsa%rellat,hsa%spglat)
+    normb        = max(hsa%rellat,hsa%spglat)
+    statgrid%var = hsa_interp%lat
 
     ! Compute local variables
 
@@ -370,7 +416,7 @@ contains
 
     ! Define local variables
 
-    if(if_normalize) hsa_interp_grid%lat = statgrid%var
+    if(tempdrop_normalize) hsa_interp%lat = statgrid%var
 
     ! Deallocate memory for local variables
 
@@ -382,95 +428,85 @@ contains
     
     ! Loop through local variable
 
-    do i = 1, hsa_interp_grid%nz
+    do i = 1, hsa_interp%nz
 
        ! Check local variable and proceed accordingly
 
-       if(hsa_interp_grid%p(i) .le. pmax .and. hsa_interp_grid%p(i) .ge.  &
-            & pmin .and. (hsa_interp_grid%tail(i) .eq. 'MANL' .or.        &
-            & hsa_interp_grid%tail(i) .eq. 'SIGL')) then
+       if((hsa_interp%p(i) .le. hsa_interp%pmax) .and. (hsa_interp%p(i)    &
+            & .ge. hsa_interp%pmin) .and. ((hsa_interp%tail(i) .eq.        &
+            & 'MANL') .or. (hsa_interp%tail(i) .eq. 'SIGL'))) then
 
           ! Compute local variables
 
-          timediff    = (hsa_interp_grid%time(hsa_interp_grid%nz) -       &
-               & hsa_interp_grid%time(i))/86400.0
-          julian_time = rel_julian + dble(timediff)
+          timediff    = (hsa_interp%time(hsa_interp%nz) -                  &
+               & hsa_interp%time(i))/86400.0
+          julian_time = hsa_interp%rel_julian + dble(timediff)
           
           ! Define local variables
 
-          j                   = j + 1
-          meteo_grid%lon(j)   = -1.0*dble(hsa_interp_grid%lon(i))
-          meteo_grid%lat(j)   = dble(hsa_interp_grid%lat(i))
-          meteo_grid%jdate(j) = julian_time
+          j              = j + 1
+          meteo%lon(j)   = -1.0*dble(hsa_interp%lon(i))
+          meteo%lat(j)   = dble(hsa_interp%lat(i))
+          meteo%jdate(j) = julian_time
 
-       end if ! if(hsa_interp_grid%p(i) .le. pmax
-              ! .and. hsa_interp_grid%p(i) .ge. pmin
-              ! .and. (hsa_interp_grid%tail(i) .eq. 'MANL'
-              ! .or. hsa_interp_grid%tail(i) .eq. 'SIGL'))
+       end if ! if((hsa_interp%p(i) .le. hsa_interp%pmax)
+              ! .and. (hsa_interp%p(i) .ge. hsa_interp%pmin)
+              ! .and. ((hsa_interp%tail(i) .eq. 'MANL')
+              ! .or. (hsa_interp%tail(i) .eq. 'SIGL')))
 
-    end do ! do i = 1, hsa_interp_grid%nz
+    end do ! do i = 1, hsa_interp%nz
 
     ! Loop through local variable
 
-    do i = hsa_interp_grid%nz, 1, -1
+    do i = hsa_interp%nz, 1, -1
  
        ! Compute local variables
 
-       timediff    = (hsa_interp_grid%time(hsa_interp_grid%nz) -          &
-            & hsa_interp_grid%time(i))/86400.0
-       julian_time = rel_julian + dble(timediff)
+       timediff    = (hsa_interp%time(hsa_interp%nz) -                     &
+            & hsa_interp%time(i))/86400.0
+       julian_time = hsa_interp%rel_julian + dble(timediff)
           
        ! Define local variables
      
-       call time_methods_gregorian_date(dble(julian_time),yyyy,mm,dd,hh,  &
+       call time_methods_gregorian_date(dble(julian_time),yyyy,mm,dd,hh,   &
             & nn,ss)       
        timediff        = real(julian_time - dble(int(julian_time)))
        write(yymmdd,'(i4,2(i2.2))') yyyy, mm, dd
        write(hhnn,'(2(i2.2))') hh, nn
-       read(yymmdd(3:8),'(f7.0)') hsa_grid%yymmdd(i)
-       read(hhnn,'(i4)') hsa_grid%gmt(i)
-       hsa_grid%lon(i) = hsa_interp_grid%lon(i)
-       hsa_grid%lat(i) = hsa_interp_grid%lat(i)
+       read(yymmdd(3:8),'(f7.0)') hsa%yymmdd(i)
+       read(hhnn,'(i4)') hsa%gmt(i)
+       hsa%lon(i) = hsa_interp%lon(i)
+       hsa%lat(i) = hsa_interp%lat(i)
 
-    end do ! do i = hsa_interp_grid%nz, 1, -1
+    end do ! do i = hsa_interp%nz, 1, -1
 
     ! Define local variables
 
-    open(99,file=trim(adjustl(filename))//'.base',form='formatted')
-    call time_methods_hmsts(hsa_grid%spgtime,spg_hmsts)
+    call time_methods_hmsts(hsa%spgtime,spg_hmsts)
     
     ! Check local variable and proceed accordingly
 
-    if(spg_hmsts .ge. rel_hmsts) then
+    if(spg_hmsts .ge. hsa_interp%rel_hmsts) then
 
        ! Define local variables
  
-       spg_julian = rel_julian + dble((dble(spg_hmsts -                   &
-            & rel_hmsts)/86400.0))
+       hsa%spg_julian = hsa%rel_julian + dble((dble(spg_hmsts -            &
+            & hsa_interp%rel_hmsts)/86400.0))
 
-    end if ! if(spg_hmsts .ge. rel_hmsts)
+    end if ! if(spg_hmsts .ge. hsa_interp%rel_hmsts)
 
     ! Check local variable and proceed accordingly
 
-    if(spg_hmsts .lt. rel_hmsts) then
+    if(spg_hmsts .lt. hsa_interp%rel_hmsts) then
 
        ! Define local variables
 
-       spg_julian = rel_julian + dble(dble(spg_hmsts)/86400.0)
+       hsa%spg_julian = hsa_interp%rel_julian +                            &
+            & dble(dble(spg_hmsts)/86400.0)
 
-    end if ! if(spg_hmsts .lt. rel_hmsts)
+    end if ! if(spg_hmsts .lt. hsa_interp%rel_hmsts)
 
-    ! Define local variables
-
-    write(99,500) -1.0*hsa_grid%spglon, hsa_grid%spglat,                  &
-         & (spg_julian - rel_julian)*86400.0, meteo_grid%lon(1),          &
-         & meteo_grid%lat(1), (meteo_grid%jdate(1) -                      &
-         & meteo_grid%jdate(meteo_grid%nz))*86400.0
-    close(99)
-
-
-    
-
+    !=====================================================================
 
   end subroutine compute_drift
 
@@ -544,100 +580,6 @@ contains
 
   end subroutine compute_meteo
   
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! drift.f90
-
-  ! DESCRIPTION:
-
-  ! This subroutine estimates the horizontal displacement of the sonde
-  ! as a function of the theoretical fall rate and the wind profile;
-  ! vertical interpolation along a linear-log pressure coordinate is
-  ! performed to estimate the theoretical fall rate and the zonal- and
-  ! meridional-displacement via the zonal- and meridional-wind vector
-  ! components, respectively; an external file containing the HSA
-  ! formatted data record with the new timestamps and geographical
-  ! coordinates is written to:
-
-  ! <datapath>/<aircraft ID>>_<observation number>_<timestamp>.hsa.drft
-
-  ! REFERENCES:
-
-  ! Hock, T. F., and J. L. Franklin, 1999: The NCAR GPS
-  ! Dropwindsonde. Bull. Amer. Meteor. Soc., 80, 407–420.
-
-  ! INPUT VARIABLES:
-
-  ! * filename; a FORTRAN character string specifying the path to the
-  !   external file containing the HSA formatted decoded TEMPDROP
-  !   message; the output file generated by this routine appends the
-  !   string '.drft' to this filename.
-
-  ! * meteo; a FORTRAN meteo_struct variable containing the aircraft
-  !   identifier (acid), the observation number (obnum), and the
-  !   full-path to the TEMPDROP file (tempdrop_name); the arrays
-  !   within this struct are populated within this routine.
-
-  !-----------------------------------------------------------------------
-
-  subroutine drift(hsa,meteo)
-
-    ! Define variables passed to routine
-
-    type(hsa_struct)                                                    :: hsa
-    type(meteo_struct)                                                  :: meteo
-
-    ! Define variables computed within routine
-
-    type(hsa_struct)                                                    :: hsa_interp
-    
-    ! Define counting variables
-
-    integer                                                             :: i
-    
-    !=====================================================================
-    
-    ! Check local variable and proceed accordingly
-
-    if(hsa%nz .le. 0) goto 1000
-
-    ! Define local variables
-
-    call plevs_sonde(hsa)
-
-    ! Check local variable and proceed accordingly
-
-    if(hsa%nmnlevs .le. 1) goto 1000
-
-    ! Compute local variables
-
-    call timeinfo_sonde(hsa)
-
-    ! Define local variables
-
-    hsa_interp%nz = hsa%nz
-    call variable_interface_setup_struct(hsa_interp)
-    hsa_interp    = hsa
-
-    ! Compute local variables
-
-    call interp_sonde(hsa_interp,meteo)
-    call compute_meteo(meteo)
-
-    ! Define local variables
-
-1000 continue
-
-    ! Deallocate memory for local variables
-
-    call variable_interface_cleanup_struct(hsa_interp)
-    
-    !=====================================================================
-
-  end subroutine drift
-
   !=======================================================================
 
   ! SUBROUTINE:
@@ -1362,15 +1304,115 @@ contains
           hsa%pmax    = max(hsa%p(i),hsa%pmax)
           hsa%pmin    = min(hsa%p(i),hsa%pmin)
 
-       end if ! if(hsa_grid%tail(i) .eq. 'MANL' .or. hsa_grid%tail(i)
-              ! .eq. 'SIGL')       
+       end if ! if(hsa%tail(i) .eq. 'MANL' .or. hsa%tail(i)
+              ! .eq. 'SIGL')
 
     end do ! do i = 1, hsa%nz
        
     !=====================================================================
     
   end subroutine plevs_sonde
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! sonde_drift.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine estimates the horizontal displacement of the sonde
+  ! as a function of the theoretical fall rate and the wind profile;
+  ! vertical interpolation along a linear-log pressure coordinate is
+  ! performed to estimate the theoretical fall rate and the zonal- and
+  ! meridional-displacement via the zonal- and meridional-wind vector
+  ! components, respectively; an external file containing the HSA
+  ! formatted data record with the new timestamps and geographical
+  ! coordinates is written to:
+
+  ! <datapath>/<aircraft ID>>_<observation number>_<timestamp>.hsa.drft
+
+  ! REFERENCES:
+
+  ! Hock, T. F., and J. L. Franklin, 1999: The NCAR GPS
+  ! Dropwindsonde. Bull. Amer. Meteor. Soc., 80, 407–420.
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the path to the
+  !   external file containing the HSA formatted decoded TEMPDROP
+  !   message; the output file generated by this routine appends the
+  !   string '.drft' to this filename.
+
+  ! * meteo; a FORTRAN meteo_struct variable containing the aircraft
+  !   identifier (acid), the observation number (obnum), and the
+  !   full-path to the TEMPDROP file (tempdrop_name); the arrays
+  !   within this struct are populated within this routine.
+
+  !-----------------------------------------------------------------------
+
+  subroutine sonde_drift(hsa,meteo)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: hsa
+    type(meteo_struct)                                                  :: meteo
+
+    ! Define variables computed within routine
+
+    type(hsa_struct)                                                    :: hsa_interp
+    character(len=500)                                                  :: error_filename
     
+    ! Define counting variables
+
+    integer                                                             :: i
+    
+    !=====================================================================
+    
+    ! Check local variable and proceed accordingly
+
+    if(hsa%nz .le. 0) goto 1000
+
+    ! Define local variables
+
+    call plevs_sonde(hsa)
+
+    ! Check local variable and proceed accordingly
+
+    if(hsa%nmnlevs .le. 1) goto 1000
+
+    ! Compute local variables
+
+    call timeinfo_sonde(hsa)
+
+    ! Define local variables
+
+    hsa_interp%nz = hsa%nz
+    call variable_interface_setup_struct(hsa_interp)
+    hsa_interp    = hsa
+
+    ! Compute local variables
+
+    call interp_sonde(hsa_interp,meteo)
+    call compute_meteo(meteo)
+    call compute_drift(hsa,hsa_interp,meteo)
+
+    ! Define local variables
+
+    error_filename = trim(adjustl(hsa%filename))//'.error'
+    call fileio_interface_write(error_filename,hsa,meteo)
+    hsa%filename   = trim(adjustl(hsa%filename))//'.drft'
+    call fileio_interface_write(hsa)
+1000 continue
+
+    ! Deallocate memory for local variables
+
+    call variable_interface_cleanup_struct(hsa_interp)
+    
+    !=====================================================================
+
+  end subroutine sonde_drift
+  
   !=======================================================================
 
   ! SUBROUTINE:
@@ -1712,7 +1754,6 @@ contains
     integer                                                             :: mm_rel
     integer                                                             :: nn_hsa
     integer                                                             :: nn_rel
-    integer                                                             :: rel_hmsts
     integer                                                             :: ss_hsa
     integer                                                             :: ss_rel
     integer                                                             :: yyyy
@@ -1735,11 +1776,11 @@ contains
     ! Compute local variables
     
     call time_methods_julian_day(hsa%yyyy,hsa%mm,hsa%dd,0,0,0,julian_day)
-    call time_methods_hmsts(hsa%reltime,rel_hmsts)
+    call time_methods_hmsts(hsa%reltime,hsa%rel_hmsts)
 
     ! Define local variables
     
-    hsa%rel_julian = julian_day + real(rel_hmsts)/86400.0
+    hsa%rel_julian = julian_day + real(hsa%rel_hmsts)/86400.0
 
     ! Compute local variables
 

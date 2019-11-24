@@ -47,6 +47,8 @@ module fileio_interface
      module procedure read_sonde_filenames
   end interface fileio_interface_read
   interface fileio_interface_write
+     module procedure write_hsa
+     module procedure write_sonde_drift_error
      module procedure write_sonde_decode_table
   end interface fileio_interface_write
   
@@ -65,7 +67,7 @@ contains
   ! This subroutine reads a National Oceanic and Atmospheric
   ! Administration (NOAA) Atlantic Oceanographic and Meteorological
   ! Laboratory (AOML) Hurricane Research Division (HRD) HRD Spline
-  ! Analysis (HSA) formatted observation files.
+  ! Analysis (HSA) formatted observation file.
 
   ! INPUT VARIABLES:
 
@@ -204,6 +206,117 @@ contains
 
   end subroutine read_sonde_filenames
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! write_hsa.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine writes a National Oceanic and Atmospheric
+  ! Administration (NOAA) Atlantic Oceanographic and Meteorological
+  ! Laboratory (AOML) Hurricane Research Division (HRD) HRD Spline
+  ! Analysis (HSA) formatted observation file.
+
+  ! INPUT VARIABLES:
+
+  ! * hsa; a FORTRAN hsa_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine write_hsa(hsa)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: hsa
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(hsa%filename))
+    open(99,file=trim(adjustl(hsa%filename)),form='formatted')
+    
+    ! Loop through local variable
+
+    do i = 1, hsa%nz
+
+       ! Define local variables
+
+       write(99,501) hsa%wx(i), hsa%yymmdd(i), hsa%gmt(i), hsa%lat(i),    &
+            & hsa%lon(i), hsa%p(i), hsa%t(i), hsa%rh(i), hsa%z(i),        &
+            & hsa%u(i), hsa%v(i), hsa%tail(i)       
+
+    end do ! do i = 1, hsa%nz
+
+    ! Define local variables
+
+    close(99)    
+500 format('WRITE_HSA: Writing file ',a,'.')
+501 format(i2,1x,f7.0,1x,i4,1x,2(f7.3,1x),3(f6.1,1x),f7.1,2(f6.1,1x),a4)    
+
+    !=====================================================================
+
+  end subroutine write_hsa
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! write_sonde_drift_error.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine writes the values for the TEMP-DROP formatted
+  ! sonde message splash location (e.g., spg attributes) and the
+  ! computed/estimated splash locations from the drift-corrected sonde
+  ! trajectories; the format is as follows:
+
+  ! <observation longitude> <observation latitude> <observation fall time>
+  ! <drift-corrected longitude> <drift-corrected latitude> <drift-         
+  ! corrected fall time>
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the filename
+  !   path to the output file.
+
+  ! * hsa; a FORTRAN hsa_struct variable; this should contain the
+  !   contents of the decoded TEMP-DROP message without the
+  !   application of the drift-correction.
+
+  ! * meteo; a FORTRAN meteo_struct variable.
+  
+  !-----------------------------------------------------------------------
+
+  subroutine write_sonde_drift_error(filename,hsa,meteo)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: hsa
+    type(meteo_struct)                                                  :: meteo
+    character(len=500)                                                  :: filename
+
+    !=====================================================================
+
+    ! Define local variables
+
+    open(99,file=trim(adjustl(filename)),form='formatted')
+    write(99,500) -1.0*hsa%spglon, hsa%spglat, (hsa%spg_julian -          &
+         & hsa%rel_julian)*86400.0, meteo%lon(1), meteo%lat(1),           &
+         & (meteo%jdate(1) - meteo%jdate(meteo%nz))*86400.0
+    close(99)
+500 format(6(f13.5,1x))
+    
+    !=====================================================================
+
+  end subroutine write_sonde_drift_error
+  
   !=======================================================================
 
   ! SUBROUTINE:

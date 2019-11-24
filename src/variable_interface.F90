@@ -41,6 +41,7 @@ module variable_interface
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
+  public :: grid_struct
   public :: hsa_struct
   public :: interp_p_struct
   public :: interp_spline_struct
@@ -92,10 +93,17 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
+  type grid_struct
+     real(r_kind)                                                       :: lon
+     real(r_kind)                                                       :: lat
+     real(r_kind)                                                       :: dist
+     real(r_kind)                                                       :: head
+  end type grid_struct            ! type grid_struct
   type hsa_struct
      character(len=4),          dimension(:),               allocatable :: tail
      character(len=500)                                                 :: filename
      real(r_double)                                                     :: rel_julian
+     real(r_double)                                                     :: spg_julian
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
      real(r_kind),              dimension(:),               allocatable :: fallrate
@@ -123,6 +131,7 @@ module variable_interface
      integer                                                            :: nmnlevs
      integer                                                            :: nn
      integer                                                            :: nz
+     integer                                                            :: rel_hmsts
      integer                                                            :: reltime
      integer                                                            :: spgtime
      integer                                                            :: ss

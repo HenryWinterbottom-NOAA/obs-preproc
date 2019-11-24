@@ -67,6 +67,10 @@ module namelist_interface
   !   whether to estimate the sonde drift, and the respective
   !   geographical locations, from the collected TEMP-DROP formatted
   !   observations.
+
+  ! * tempdrop_normalize; a FORTRAN logical value specifying whether
+  !   to normalize the geographical coordinate values computed for the
+  !   advection trajectory of the TEMP-DROP formatted observations.
   
   ! * tempdrop_write_hsa; a FORTRAN logical value specifying whether
   !   to write National Oceanic and Atmospheric Administration (NOAA)
@@ -114,10 +118,13 @@ module namelist_interface
        & is_sonde_tempdrop = .false. ! NEED
   logical                                                               :: &
        & tempdrop_compute_drift = .false.
+  logical                                                               :: &
+       & tempdrop_normalize = .false. 
   namelist /share/    analdate, datapath, debug, is_sonde
   namelist /bufrio/   bufr_filepath, bufr_tblpath  
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
-       & tempdrop_compute_drift, tempdrop_hsa_table_file
+       & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
+       & tempdrop_normalize
   
   !-----------------------------------------------------------------------
 
