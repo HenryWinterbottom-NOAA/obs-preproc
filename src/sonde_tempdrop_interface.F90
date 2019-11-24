@@ -38,6 +38,7 @@ module sonde_tempdrop_interface
   use math_methods_interface
   use meteo_methods_interface
   use namelist_interface
+  use netcdf_interface
   use time_methods_interface
   use variable_interface
 
@@ -108,18 +109,15 @@ contains
 
           ! Compute local variables
 
-          call sonde_drift(hsa(i),meteo)
+          call sonde_drift(sonde,hsa(i),meteo)
 
        end if ! if(tempdrop_compute_drift)
-
-
 
        ! Deallocate memory for local variables
 
        call variable_interface_cleanup_struct(meteo)
 
     end do ! do i = 1, sonde%nsondes
-
 
     ! Loop through local variable
 
@@ -1351,17 +1349,19 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine sonde_drift(hsa,meteo)
+  subroutine sonde_drift(sonde,hsa,meteo)
 
     ! Define variables passed to routine
 
     type(hsa_struct)                                                    :: hsa
     type(meteo_struct)                                                  :: meteo
+    type(sonde_struct)                                                  :: sonde
 
     ! Define variables computed within routine
 
     type(hsa_struct)                                                    :: hsa_interp
     character(len=500)                                                  :: error_filename
+    character(len=500)                                                  :: skewt_filename
     
     ! Define counting variables
 
@@ -1400,9 +1400,23 @@ contains
     ! Define local variables
 
     error_filename = trim(adjustl(hsa%filename))//'.error'
+    skewt_filename = trim(adjustl(hsa%filename))//'.nc'
     call fileio_interface_write(error_filename,hsa,meteo)
     hsa%filename   = trim(adjustl(hsa%filename))//'.drft'
     call fileio_interface_write(hsa)
+
+    ! Check local variable and proceed accordingly
+
+    if(tempdrop_write_nc_skewt) then
+
+       ! Define local variables
+
+       call fileio_interface_write(sonde,meteo,skewt_filename)
+
+    end if ! if(tempdrop_write_nc_skewt)
+
+    ! Define local variables
+    
 1000 continue
 
     ! Deallocate memory for local variables

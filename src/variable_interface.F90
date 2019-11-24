@@ -52,6 +52,7 @@ module variable_interface
   public :: statgrid_struct
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
+  public :: varinfo_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
      module procedure finalize_hsa_struct
@@ -61,6 +62,7 @@ module variable_interface
      module procedure finalize_obs_flag_struct
      module procedure finalize_sonde_struct
      module procedure finalize_statgrid_struct
+     module procedure finalize_varinfo_struct
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
@@ -71,6 +73,7 @@ module variable_interface
      module procedure initialize_obs_flag_struct
      module procedure initialize_sonde_struct
      module procedure initialize_statgrid_struct
+     module procedure initialize_varinfo_struct
   end interface variable_interface_setup_struct
 
   ! Define local variables
@@ -197,6 +200,21 @@ module variable_interface
      integer                                                            :: n
      integer                                                            :: nvals
   end type statgrid_struct        ! type statgrid_struct
+  type varinfo_struct
+     character(len=500),        dimension(:,:,:),           allocatable :: varattrs
+     character(len=25),         dimension(:),               allocatable :: varname
+     character(len=10),         dimension(:),               allocatable :: dimname
+     character(len=10),         dimension(:),               allocatable :: vartype
+     integer,                   dimension(:,:),             allocatable :: vardimid
+     integer,                   dimension(:),               allocatable :: dimid
+     integer,                   dimension(:),               allocatable :: dimval
+     integer,                   dimension(:),               allocatable :: varid
+     integer,                   dimension(:),               allocatable :: varndims
+     integer,                   dimension(:),               allocatable :: varnattrs
+     integer                                                            :: nvars
+     integer                                                            :: ndims
+     integer                                                            :: nattrs
+  end type varinfo_struct         ! type varinfo_struct  
   integer,        parameter                                             :: bufr_mxlv  = 200
   integer,        parameter                                             :: bufr_mxmn  = 35
 
@@ -503,7 +521,49 @@ contains
 
     !=====================================================================
     
-  end subroutine finalize_statgrid_struct  
+  end subroutine finalize_statgrid_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! finalize_varinfo_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! varinfo_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN varinfo_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_varinfo_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(varinfo_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%varattrs))  deallocate(grid%varattrs)
+    if(allocated(grid%varname))   deallocate(grid%varname)
+    if(allocated(grid%vartype))   deallocate(grid%vartype)
+    if(allocated(grid%dimname))   deallocate(grid%dimname)
+    if(allocated(grid%dimval))    deallocate(grid%dimval)
+    if(allocated(grid%dimid))     deallocate(grid%dimid)
+    if(allocated(grid%vardimid))  deallocate(grid%vardimid)
+    if(allocated(grid%varid))     deallocate(grid%varid)
+    if(allocated(grid%varndims))  deallocate(grid%varndims)
+    if(allocated(grid%varnattrs)) deallocate(grid%varnattrs)
+
+    !=====================================================================
+
+  end subroutine finalize_varinfo_struct  
 
   !=======================================================================
 
@@ -884,8 +944,65 @@ contains
 
     !=====================================================================
     
-  end subroutine initialize_statgrid_struct  
+  end subroutine initialize_statgrid_struct
 
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! initialize_varinfo_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! varinfo_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN varinfo_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN varinfo_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_varinfo_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(varinfo_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%varattrs))                                     &
+         & allocate(grid%varattrs(grid%nvars,grid%nattrs,2))
+    if(.not. allocated(grid%vardimid))                                     &
+         & allocate(grid%vardimid(grid%nvars,grid%ndims))
+    if(.not. allocated(grid%varname))                                      &
+         & allocate(grid%varname(grid%nvars))
+    if(.not. allocated(grid%vartype))                                      &
+         & allocate(grid%vartype(grid%nvars))
+    if(.not. allocated(grid%varndims))                                     &
+         & allocate(grid%varndims(grid%nvars))
+    if(.not. allocated(grid%varnattrs))                                    &
+         & allocate(grid%varnattrs(grid%nvars))
+    if(.not. allocated(grid%varid))                                        &
+         & allocate(grid%varid(grid%nvars))
+    if(.not. allocated(grid%dimval))                                       &
+         & allocate(grid%dimval(grid%ndims))
+    if(.not. allocated(grid%dimname))                                      &
+         & allocate(grid%dimname(grid%ndims))
+    if(.not. allocated(grid%dimid))                                        &
+         & allocate(grid%dimid(grid%ndims))
+
+    !=====================================================================
+
+  end subroutine initialize_varinfo_struct
+  
   !=======================================================================
 
 end module variable_interface

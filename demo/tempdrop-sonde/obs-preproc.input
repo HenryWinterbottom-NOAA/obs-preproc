@@ -11,7 +11,8 @@ bufr_tblpath  = '../demo/prepobs_prep.bufrtable'
 /
 
 &sonde
-is_sonde_tempdrop      = T
-sonde_filelist         = '/Volumes/Time Machine/regression-tests/obs-preproc/tempdrop-sonde/2019-09-01_00:00:00/filelist.tempdrop-sonde'
-tempdrop_compute_drift = T
+is_sonde_tempdrop       = T
+sonde_filelist          = '/Volumes/Time Machine/regression-tests/obs-preproc/tempdrop-sonde/2019-09-01_00:00:00/filelist.tempdrop-sonde'
+tempdrop_compute_drift  = T
+tempdrop_write_nc_skewt = T
 /

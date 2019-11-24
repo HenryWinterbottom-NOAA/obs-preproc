@@ -40,6 +40,7 @@ diagnostics_interface.o: diagnostics_interface.F90 \
 fileio_interface.o: fileio_interface.F90 \
 		    kinds_interface.o \
 		    namelist_interface.o \
+		    netcdf_interface.o \
 		    variable_interface.o
 
 grid_methods_interface.o: grid_methods_interface.F90 \
@@ -59,7 +60,11 @@ meteo_methods_interface.o: meteo_methods_interface.F90 \
 			   variable_interface.o
 
 namelist_interface.o: namelist_interface.F90 \
-		      kinds_interface.o 
+		      kinds_interface.o
+
+netcdf_interface.o: netcdf_interface.F90 \
+		    kinds_interface.o \
+		    variable_interface.o
 
 observations_interface.o: observations_interface.F90 \
 			  kinds_interface.o \

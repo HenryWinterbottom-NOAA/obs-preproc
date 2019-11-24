@@ -71,28 +71,13 @@ module namelist_interface
   ! * tempdrop_normalize; a FORTRAN logical value specifying whether
   !   to normalize the geographical coordinate values computed for the
   !   advection trajectory of the TEMP-DROP formatted observations.
-  
-  ! * tempdrop_write_hsa; a FORTRAN logical value specifying whether
-  !   to write National Oceanic and Atmospheric Administration (NOAA)
-  !   Atlantic Oceanographic and Meteorological Laboratory (AOML)
-  !   Hurricane Research Division (HRD) spline analysis (HSA)
-  !   formatted files.
-
-  ! * tempdrop_write_hsa_drift; a FORTRAN logical value specifying
-  !   whether to write National Oceanic and Atmospheric Administration
-  !   (NOAA) Atlantic Oceanographic and Meteorological Laboratory
-  !   (AOML) Hurricane Research Division (HRD) spline analysis (HSA)
-  !   formatted files which include the geographical positions
-  !   estimated as a function of sonde drift; tempdrop_compute_drift
-  !   must be true.
 
   ! * tempdrop_write_nc_skewt; a FORTRAN logical value specifying
   !   whether to write a network common data format (netcdf) file
   !   containing interpolated National Oceanic and Atmospheric
   !   Administration (NOAA) Atlantic Oceanographic and Meteorological
   !   Laboratory (AOML) Hurricane Research Division (HRD) spline
-  !   analysis (HSA) values; tempdrop_write_hsa_drift and
-  !   tempdrop_compute_drift must both be true.
+  !   analysis (HSA) values; tempdrop_compute_drift must be true.
   
   !-----------------------------------------------------------------------
 
@@ -119,12 +104,14 @@ module namelist_interface
   logical                                                               :: &
        & tempdrop_compute_drift = .false.
   logical                                                               :: &
-       & tempdrop_normalize = .false. 
+       & tempdrop_normalize = .false.
+  logical                                                               :: &
+       & tempdrop_write_nc_skewt = .false.  
   namelist /share/    analdate, datapath, debug, is_sonde
   namelist /bufrio/   bufr_filepath, bufr_tblpath  
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
-       & tempdrop_normalize
+       & tempdrop_normalize, tempdrop_write_nc_skewt
   
   !-----------------------------------------------------------------------
 
