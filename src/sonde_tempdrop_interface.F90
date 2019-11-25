@@ -107,16 +107,26 @@ contains
 
        if(tempdrop_compute_drift) then
 
-          ! Compute local variables
+          ! Define local variables
 
-          call sonde_drift(sonde,hsa(i),meteo)
+          call check_tempdrop(sonde%filename(i),hsa(i))
+
+          ! Check local variable and proceed accordingly
+
+          if(hsa(i)%process) then
+          
+             ! Compute local variables
+             
+             call sonde_drift(sonde,hsa(i),meteo)
+             
+          end if ! if(hsa(i)%process)
 
        end if ! if(tempdrop_compute_drift)
-
+          
        ! Deallocate memory for local variables
 
        call variable_interface_cleanup_struct(meteo)
-
+          
     end do ! do i = 1, sonde%nsondes
 
     ! Loop through local variable
@@ -138,6 +148,88 @@ contains
 
   end subroutine sonde_tempdrop
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! check_tempdrop.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine checks that the parameters required to compute the
+  ! drift correction are available within the respective TEMP-DROP
+  ! formatted observation file; the attribute 'process' within the
+  ! FORTRAN hsa_struct variable is updated accordingly.
+
+  ! INPUT VARIABLES:
+
+  ! * infile; a FORTRAN character string specifying the path to the
+  !   external file containing the TEMPDROP messages.
+
+  ! * hsa; a FORTRAN hsa_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * hsa; a FORTRAN hsa_struct variable where the attribute value
+  !   'process' as been defined accordingly.
+
+  !-----------------------------------------------------------------------
+
+  subroutine check_tempdrop(infile,hsa)
+
+    ! Define variables passed to routine
+    
+    type(hsa_struct)                                                    :: hsa
+    character(len=500)                                                  :: infile
+
+    ! Define variables passed to routine
+
+    character(len=70)                                                   :: line
+    logical                                                             :: find_rel
+    logical                                                             :: find_spg
+    logical                                                             :: find_spl
+    
+    !=====================================================================
+
+    ! Define local variables
+
+    hsa%process = .false.
+    find_rel    = .false.
+    find_spg    = .false.
+    find_spl    = .false.
+    open(99,file=trim(adjustl(infile)),status='old')
+100 read(99,'(a)',end=1000) line
+    if(index(line,'REL') .ne. 0) find_rel = .true.
+    goto 100
+1000 continue
+    close(99)
+    open(99,file=trim(adjustl(infile)),status='old')
+101 read(99,'(a)',end=1001) line
+    if(index(line,'SPG') .ne. 0) find_spg = .true.
+    goto 101
+1001 continue
+    close(99)
+    open(99,file=trim(adjustl(infile)),status='old')
+102 read(99,'(a)',end=1002) line
+    if(index(line,'SPL') .ne. 0) find_spl = .true.
+    goto 102
+1002 continue
+    close(99)
+
+    ! Check local variable and proceed accordingly
+
+    if(find_rel .and. (find_spg .or. find_spl)) then
+
+       ! Define local variables
+
+       hsa%process = .true.
+
+    end if ! if(find_rel .and. (find_spg .or. find_spl))
+    
+    !=====================================================================
+
+  end subroutine check_tempdrop
+    
   !=======================================================================
 
   ! SUBROUTINE:
@@ -1644,11 +1736,13 @@ contains
 
     end	if ! if(exist)
 
+    ! Define local variables
+    
 1001 continue
     open(99,file=trim(adjustl(hsa%filename)),form='formatted')
     open(12,file=trim(adjustl(infile)),status='old')
 21  read(12,'(a)',end=1002) line
-
+       
     ! Check local variable and proceed accordingly
 
     if(index(line,'REL') .ne. 0) then
@@ -1768,6 +1862,7 @@ contains
     integer                                                             :: mm_rel
     integer                                                             :: nn_hsa
     integer                                                             :: nn_rel
+    integer                                                             :: seconds
     integer                                                             :: ss_hsa
     integer                                                             :: ss_rel
     integer                                                             :: yyyy
@@ -1778,6 +1873,15 @@ contains
 
     ! Define local variables
 
+    seconds = int((hsa%hh*3600.0) + (hsa%nn*60.0) + hsa%ss)
+    
+    ! Compute local variables
+
+    call time_methods_julian_day(hsa%yyyy,hsa%mm,hsa%dd,0,0,0,hsa_julian)
+    
+    ! Define local variables
+
+    hsa_julian  = hsa_julian + real(seconds)/86400.0
     write(yymmdd,'(i6)') int(hsa%yymmdd(hsa%nz))
     read(yymmdd(1:2),'(i2)') yyyy
     read(yymmdd(3:4),'(i2)') mm

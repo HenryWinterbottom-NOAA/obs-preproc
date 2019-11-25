@@ -105,6 +105,7 @@ module variable_interface
   type hsa_struct
      character(len=4),          dimension(:),               allocatable :: tail
      character(len=500)                                                 :: filename
+     logical                                                            :: process
      real(r_double)                                                     :: rel_julian
      real(r_double)                                                     :: spg_julian
      real(r_kind),              dimension(:),               allocatable :: lat
@@ -666,6 +667,10 @@ contains
     if(.not. allocated(grid%gmt))      allocate(grid%gmt(grid%nz))
     if(.not. allocated(grid%wx))       allocate(grid%wx(grid%nz))
     if(.not. allocated(grid%time))     allocate(grid%time(grid%nz))
+
+    ! Define local variables
+
+    grid%process = .true.
 
     !=====================================================================
     
