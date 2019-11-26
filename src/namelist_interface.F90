@@ -63,6 +63,12 @@ module namelist_interface
   ! * debug; a FORTRAN logical value specifying whether to include
   !   debug information during execution.
 
+  ! * is_sonde; a FORTRAN logical value specifying whether the
+  !   observations to be formatted are derived from sondes.
+
+  ! * is_sonde_tempdrop; a FORTRAN logical value specifying whether
+  !   the sonde observations are derived from TEMP-DROP messages.
+  
   ! * sonde_filelist; a FORTRAN character string specifying the
   !   full-path to the external file containing a list of TEMPDROP
   !   formatted sondes to be decoded.
@@ -72,6 +78,11 @@ module namelist_interface
   !   geographical locations, from the collected TEMP-DROP formatted
   !   observations.
 
+  ! * tempdrop_hsa_table_file; a FORTRAN character string specifying
+  !   the full-path to a column-delimited table; if this file does not
+  !   exist upon call to this routine, it will be created; if the file
+  !   does exist upon call to this routine, it will be appended.
+  
   ! * tempdrop_normalize; a FORTRAN logical value specifying whether
   !   to normalize the geographical coordinate values computed for the
   !   advection trajectory of the TEMP-DROP formatted observations.
@@ -98,15 +109,15 @@ module namelist_interface
   character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
-       & tempdrop_hsa_table_file = './tempdrop-hsa.table' ! NEED
+       & tempdrop_hsa_table_file = './tempdrop-hsa.table'
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
   logical                                                               :: &
        & debug = .false.
   logical                                                               :: &
-       & is_sonde = .false. ! NEED
+       & is_sonde = .false.
   logical                                                               :: &
-       & is_sonde_tempdrop = .false. ! NEED
+       & is_sonde_tempdrop = .false.
   logical                                                               :: &
        & tempdrop_compute_drift = .false.
   logical                                                               :: &
@@ -178,6 +189,35 @@ contains
        
     end if ! if(is_it_there)
 
+    ! Define local variables
+    
+    write(6,*) '&SHARE'
+    write(6,*) 'ANALDATE                      = ', analdate
+    write(6,*) 'DATAPATH                      = ',                         &
+         & trim(adjustl(datapath))
+    write(6,*) 'DEBUG                         = ', debug
+    write(6,*) 'IS_SONDE                      = ', is_sonde
+    write(6,*) '/'
+    write(6,*) '&BUFRIO'
+    write(6,*) 'BUFR_FILEPATH                 = ',                         &
+         & trim(adjustl(bufr_filepath))
+    write(6,*) 'BUFR_INFO_FILEPATH            = ',                         & 
+         & trim(adjustl(bufr_info_filepath))
+    write(6,*) 'BUFR_TBLPATH                  = ',                         &
+         & trim(adjustl(bufr_tblpath))
+    write(6,*) '/'
+    write(6,*) '&SONDE'
+    write(6,*) 'IS_SONDE_TEMPDROP             = ', is_sonde_tempdrop
+    write(6,*) 'SONDE_FILELIST                = ',                         &
+         & trim(adjustl(sonde_filelist))
+    write(6,*) 'TEMPDROP_COMPUTE_DRIFT        = ',                         &
+         & tempdrop_compute_drift
+    write(6,*) 'TEMPDROP_HSA_TABLE_FILE       = ',                         &
+         & trim(adjustl(tempdrop_hsa_table_file))
+    write(6,*) 'TEMPDROP_NORMALIZE            = ', tempdrop_normalize
+    write(6,*) 'TEMPDROP_WRITE_NC_SKEWT       = ',                         &
+         & tempdrop_write_nc_skewt
+    write(6,*) '/'
 500 format('NAMELISTPARAMS: ', a, ' not found in the current working ',    &
          & 'directory. ABORTING!!!!')
     

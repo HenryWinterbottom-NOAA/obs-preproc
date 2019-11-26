@@ -250,11 +250,26 @@ contains
 
   ! INPUT VARIABLES:
 
-  ! 
+  ! * hsa; a FORTRAN hsa_struct variable containing the decoded
+  !   TEMP-DROP attributes for the release and splash times, the
+  !   timestamp attributes, and the filename to which the decoded
+  !   TEMP-DROP message is written.
+
+  ! * hsa_interp; a FORTRAN hsa_struct variable containing updated
+  !   observed variable profiles obtain via interpolation.
+
+  ! * meteo; a FORTRAN meteo_struct variable containing both observed
+  !   and diagnostic variables computed from the decoded TEMP-DROP
+  !   message.
 
   ! OUTPUT VARIABLES:
 
-  !
+  ! * hsa; a FORTRAN hsa_struct variable containing the
+  !   drift-corrected HSA decoded TEMP-DROP messages.
+
+  ! * meteo; a FORTRAN meteo_struct variable containing
+  !   drift-corrected observed and diagnostic variables computed from
+  !   the decoded TEMP-DROP message.
 
   !-----------------------------------------------------------------------
 
@@ -1801,7 +1816,7 @@ contains
   !   timestamp attributes, and the filename to which the decoded
   !   TEMP-DROP message is written; the output filename is as follows:
 
-  ! <datapath>/<aircraft ID>>_<observation number>_<timestamp>.hsa
+  ! <datapath>/<aircraft ID>_<observation number>_<timestamp>.hsa
 
   ! * meteo; a FORTRAN meteo_struct variable containing the aircraft
   !   identifier (acid), the observation number (obnum), and the
