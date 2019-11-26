@@ -37,11 +37,13 @@ module variable_interface
   
   implicit none
   private
+  public :: bufr_info_struct
   public :: bufr_mxlv
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
   public :: grid_struct
+  public :: hsa_spval
   public :: hsa_struct
   public :: interp_p_struct
   public :: interp_spline_struct
@@ -79,7 +81,14 @@ module variable_interface
   ! Define local variables
 
   real(r_double), parameter                                             :: bufr_spval = 10.e10
+  real(r_kind),   parameter                                             :: hsa_spval  = -99.0
   real(r_kind),   parameter                                             :: spval      = huge(0.0)
+  type bufr_info_struct
+     character(len=500)                                                 :: filename
+     character(len=8)                                                   :: subset
+     integer                                                            :: obs_type_mass
+     integer                                                            :: obs_type_wind
+  end type bufr_info_struct       ! type bufr_info_struct  
   type bufr_struct
      character(len=80)                                                  :: obstr
      character(len=80)                                                  :: hdstr
@@ -159,6 +168,7 @@ module variable_interface
      character(len=5)                                                   :: acid
      character(len=2)                                                   :: obnum
      real(r_double),            dimension(:),               allocatable :: dwpt
+     real(r_double),            dimension(:),               allocatable :: jdate
      real(r_double),            dimension(:),               allocatable :: lat
      real(r_double),            dimension(:),               allocatable :: lon
      real(r_double),            dimension(:),               allocatable :: p
@@ -172,8 +182,8 @@ module variable_interface
      real(r_double),            dimension(:),               allocatable :: v
      real(r_double),            dimension(:),               allocatable :: wdir
      real(r_double),            dimension(:),               allocatable :: wspd
+     real(r_double),            dimension(:),               allocatable :: wvmxrt
      real(r_double),            dimension(:),               allocatable :: z
-     real(r_double),            dimension(:),               allocatable :: jdate
      real(r_kind),              dimension(:),               allocatable :: dist
      real(r_kind),              dimension(:),               allocatable :: head
      real(r_double)                                                     :: psfc
@@ -401,22 +411,23 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(allocated(grid%dwpt))  deallocate(grid%dwpt)  
-    if(allocated(grid%lat))   deallocate(grid%lat)
-    if(allocated(grid%lon))   deallocate(grid%lon)
-    if(allocated(grid%p))     deallocate(grid%p)
-    if(allocated(grid%q))     deallocate(grid%q)
-    if(allocated(grid%rh))    deallocate(grid%rh)
-    if(allocated(grid%t))     deallocate(grid%t)
-    if(allocated(grid%thta))  deallocate(grid%thta)
-    if(allocated(grid%thte))  deallocate(grid%thte)
-    if(allocated(grid%thtv))  deallocate(grid%thtv)
-    if(allocated(grid%u))     deallocate(grid%u)
-    if(allocated(grid%v))     deallocate(grid%v)
-    if(allocated(grid%wdir))  deallocate(grid%wdir)
-    if(allocated(grid%wspd))  deallocate(grid%wspd)
-    if(allocated(grid%z))     deallocate(grid%z)
-    if(allocated(grid%jdate)) deallocate(grid%jdate)
+    if(allocated(grid%dwpt))   deallocate(grid%dwpt)
+    if(allocated(grid%jdate))  deallocate(grid%jdate)
+    if(allocated(grid%lat))    deallocate(grid%lat)
+    if(allocated(grid%lon))    deallocate(grid%lon)
+    if(allocated(grid%p))      deallocate(grid%p)
+    if(allocated(grid%q))      deallocate(grid%q)
+    if(allocated(grid%rh))     deallocate(grid%rh)
+    if(allocated(grid%t))      deallocate(grid%t)
+    if(allocated(grid%thta))   deallocate(grid%thta)
+    if(allocated(grid%thte))   deallocate(grid%thte)
+    if(allocated(grid%thtv))   deallocate(grid%thtv)
+    if(allocated(grid%u))      deallocate(grid%u)
+    if(allocated(grid%v))      deallocate(grid%v)
+    if(allocated(grid%wdir))   deallocate(grid%wdir)
+    if(allocated(grid%wspd))   deallocate(grid%wspd)
+    if(allocated(grid%wvmxrt)) deallocate(grid%wvmxrt)
+    if(allocated(grid%z))      deallocate(grid%z)
 
     !=====================================================================
     
@@ -786,42 +797,44 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(grid%dwpt))  allocate(grid%dwpt(grid%nz))  
-    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%nz))
-    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%nz))
-    if(.not. allocated(grid%p))     allocate(grid%p(grid%nz))
-    if(.not. allocated(grid%q))     allocate(grid%q(grid%nz))
-    if(.not. allocated(grid%rh))    allocate(grid%rh(grid%nz))
-    if(.not. allocated(grid%t))     allocate(grid%t(grid%nz))
-    if(.not. allocated(grid%thta))  allocate(grid%thta(grid%nz))
-    if(.not. allocated(grid%thte))  allocate(grid%thte(grid%nz))
-    if(.not. allocated(grid%thtv))  allocate(grid%thtv(grid%nz))
-    if(.not. allocated(grid%u))     allocate(grid%u(grid%nz))
-    if(.not. allocated(grid%v))     allocate(grid%v(grid%nz))
-    if(.not. allocated(grid%wdir))  allocate(grid%wdir(grid%nz))
-    if(.not. allocated(grid%wspd))  allocate(grid%wspd(grid%nz))
-    if(.not. allocated(grid%z))     allocate(grid%z(grid%nz))
-    if(.not. allocated(grid%jdate)) allocate(grid%jdate(grid%nz))
-    
+    if(.not. allocated(grid%dwpt))   allocate(grid%dwpt(grid%nz))
+    if(.not. allocated(grid%jdate))  allocate(grid%jdate(grid%nz))
+    if(.not. allocated(grid%lat))    allocate(grid%lat(grid%nz))
+    if(.not. allocated(grid%lon))    allocate(grid%lon(grid%nz))
+    if(.not. allocated(grid%p))      allocate(grid%p(grid%nz))
+    if(.not. allocated(grid%q))      allocate(grid%q(grid%nz))
+    if(.not. allocated(grid%rh))     allocate(grid%rh(grid%nz))
+    if(.not. allocated(grid%t))      allocate(grid%t(grid%nz))
+    if(.not. allocated(grid%thta))   allocate(grid%thta(grid%nz))
+    if(.not. allocated(grid%thte))   allocate(grid%thte(grid%nz))
+    if(.not. allocated(grid%thtv))   allocate(grid%thtv(grid%nz))
+    if(.not. allocated(grid%u))      allocate(grid%u(grid%nz))
+    if(.not. allocated(grid%v))      allocate(grid%v(grid%nz))
+    if(.not. allocated(grid%wdir))   allocate(grid%wdir(grid%nz))
+    if(.not. allocated(grid%wspd))   allocate(grid%wspd(grid%nz))
+    if(.not. allocated(grid%wvmxrt)) allocate(grid%wvmxrt(grid%nz))
+    if(.not. allocated(grid%z))      allocate(grid%z(grid%nz))
+
     ! Define local variables
 
-    grid%dwpt  = spval
-    grid%lat   = spval
-    grid%lon   = spval
-    grid%p     = spval
-    grid%q     = spval
-    grid%rh    = spval
-    grid%t     = spval
-    grid%thta  = spval
-    grid%thte  = spval
-    grid%thtv  = spval
-    grid%u     = spval
-    grid%v     = spval
-    grid%wdir  = spval
-    grid%wspd  = spval
-    grid%z     = spval
-    grid%jdate = spval
-    grid%psfc  = spval
+    grid%dwpt   = spval
+    grid%jdate  = spval
+    grid%lat    = spval
+    grid%lon    = spval
+    grid%p      = spval
+    grid%q      = spval
+    grid%rh     = spval
+    grid%t      = spval
+    grid%thta   = spval
+    grid%thte   = spval
+    grid%thtv   = spval
+    grid%u      = spval
+    grid%v      = spval
+    grid%wdir   = spval
+    grid%wspd   = spval
+    grid%wvmxrt = spval
+    grid%z      = spval
+    grid%psfc   = spval
 
     !=====================================================================
     

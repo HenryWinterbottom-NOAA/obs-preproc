@@ -6,8 +6,9 @@ is_sonde = T
 /
 
 &bufrio
-bufr_filepath = './prepbufr.tempdrop'
-bufr_tblpath  = '../demo/prepobs_prep.bufrtable'
+bufr_filepath      = './prepbufr.tempdrop'
+bufr_info_filepath = '../demo/tempdrop-sonde/bufr_info.json'
+bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
 /
 
 &sonde

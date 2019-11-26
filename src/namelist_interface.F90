@@ -48,6 +48,10 @@ module namelist_interface
   ! * bufr_filepath; a FORTRAN character string specifying the
   !   full-path to the BUFR file to be written (or appended) to.
 
+  ! * bufr_info_filepath; a FORTRAN character string specifying
+  !   the full-path to the external file containing the BUFR
+  !   information for the respective observation type.
+
   ! * bufr_tblpath; a FORTRAN character string specifying the
   !   full-path to the external file containing the BUFR table to be
   !   written (or appended) to the output BUFR file. 
@@ -86,6 +90,8 @@ module namelist_interface
   character(len=500)                                                    :: &
        & bufr_filepath = 'NOT USED'
   character(len=500)                                                    :: &
+       & bufr_info_filepath = 'NOT USED'
+  character(len=500)                                                    :: &
        & bufr_tblpath = 'NOT USED'
   character(len=500)                                                    :: &
        & datapath = './'
@@ -108,7 +114,7 @@ module namelist_interface
   logical                                                               :: &
        & tempdrop_write_nc_skewt = .false.  
   namelist /share/    analdate, datapath, debug, is_sonde
-  namelist /bufrio/   bufr_filepath, bufr_tblpath  
+  namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath  
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
@@ -159,6 +165,7 @@ contains
             form   = 'formatted'     ,                                     &
             action = 'read')
        read(unit_nml,NML = share)
+       read(unit_nml,NML = bufrio)
        read(unit_nml,NML = sonde)
        close(unit_nml)
 

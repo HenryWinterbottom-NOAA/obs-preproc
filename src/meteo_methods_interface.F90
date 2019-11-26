@@ -38,6 +38,7 @@ module meteo_methods_interface
   public :: meteo_methods_dwpttemp
   public :: meteo_methods_geolatdist
   public :: meteo_methods_pottemp
+  public :: meteo_methods_spechumd
   public :: meteo_methods_vpottemp
   public :: meteo_methods_wspdwdir
   public :: meteo_methods_wvmxrt
@@ -234,6 +235,46 @@ contains
     !=====================================================================
 
   end subroutine meteo_methods_pottemp
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! meteo_methods_spechumd.f90
+
+  ! DESCRIPTION:
+  
+  ! This subroutine computes the specific humidity value.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN meteo_struct variable containing the pressure
+  !   (p; Pascals), the temperature (t; Kelvin) and relative humidity
+  !   (rh; percentage) values.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN meteo_struct variable containing the computed
+  !   specific humidity value (q; kilograms per kilograms).
+
+  !-----------------------------------------------------------------------
+  
+  subroutine meteo_methods_spechumd(grid)
+
+    ! Define variables passed to routine
+
+    type(meteo_struct)                                                  :: grid
+
+    !=====================================================================
+
+    ! Compute local variables
+
+    call meteo_methods_wvmxrt(grid)
+    grid%q = grid%wvmxrt/(dble(1.0) + grid%wvmxrt)
+
+    !=====================================================================
+
+  end subroutine meteo_methods_spechumd  
 
   !=======================================================================
 
@@ -439,13 +480,13 @@ contains
 
              ! Define local variables
 
-             grid%q(i) = dble(1.e-6)
+             grid%wvmxrt(i) = dble(1.e-6)
 
           else   ! if(es .ge. grid%p(i)/dble(100.0))
 
              ! Define local variables
 
-             grid%q(i) = max(eps*es/(grid%p(i)/dble(100.0) - es),          &
+             grid%wvmxrt(i) = max(eps*es/(grid%p(i)/dble(100.0) - es),     &
                   & dble(1.e-6))
 
           end if ! if(es .ge. grid%p(i)/dble(100.0))

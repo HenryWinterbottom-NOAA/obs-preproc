@@ -31,6 +31,7 @@ module fileio_interface
 
   ! Define associated modules and subroutines
 
+  use json_interface
   use kinds_interface
   use namelist_interface
   use netcdf_interface
@@ -43,6 +44,7 @@ module fileio_interface
   public :: fileio_interface_read
   public :: fileio_interface_write
   interface fileio_interface_read
+     module procedure read_bufr_info
      module procedure read_hsa
      module procedure read_sonde_filenames
   end interface fileio_interface_read
@@ -59,6 +61,45 @@ module fileio_interface
   !-----------------------------------------------------------------------
 
 contains
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_bufr_info.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine parses a JSON formatted file and defines the BUFR
+  ! record attributes as specified by the user.  
+
+  ! INPUT VARIABLES:
+
+  ! * bufr_info; a FORTRAN bufr_info_struct variable containing the
+  !   BUFR information JSON file path.
+
+  ! OUTPUT VARIABLES:
+
+  ! * bufr_info; a FORTRAN bufr_info_struct variable containing the
+  !   BUFR record attributes specified by the user.
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_bufr_info(bufr_info)
+
+    ! Define variables passed to routine
+
+    type(bufr_info_struct)                                              :: bufr_info
+
+    !=====================================================================
+
+    ! Define local variables
+
+    call json_interface_read(bufr_info)
+
+    !=====================================================================
+
+  end subroutine read_bufr_info  
 
   !=======================================================================
 

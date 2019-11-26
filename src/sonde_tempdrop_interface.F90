@@ -31,6 +31,7 @@ module sonde_tempdrop_interface
 
   ! Define associated modules and subroutines
 
+  use bufrio_interface
   use constants_interface
   use fileio_interface
   use grid_methods_interface
@@ -109,7 +110,7 @@ contains
 
           ! Define local variables
 
-          call check_tempdrop(sonde%filename(i),hsa(i))
+          call check_tempdrop_msg(sonde%filename(i),hsa(i))
 
           ! Check local variable and proceed accordingly
 
@@ -128,6 +129,10 @@ contains
        call variable_interface_cleanup_struct(meteo)
           
     end do ! do i = 1, sonde%nsondes
+
+    ! Define local variables
+
+    call sonde_bufr(hsa)
 
     ! Loop through local variable
 
@@ -152,14 +157,14 @@ contains
 
   ! SUBROUTINE:
 
-  ! check_tempdrop.f90
+  ! check_tempdrop_msg.f90
 
   ! DESCRIPTION:
 
   ! This subroutine checks that the parameters required to compute the
   ! drift correction are available within the respective TEMP-DROP
-  ! formatted observation file; the attribute 'process' within the
-  ! FORTRAN hsa_struct variable is updated accordingly.
+  ! formatted observation/message file; the attribute 'process' within
+  ! the FORTRAN hsa_struct variable is updated accordingly.
 
   ! INPUT VARIABLES:
 
@@ -175,7 +180,7 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine check_tempdrop(infile,hsa)
+  subroutine check_tempdrop_msg(infile,hsa)
 
     ! Define variables passed to routine
     
@@ -228,8 +233,8 @@ contains
     
     !=====================================================================
 
-  end subroutine check_tempdrop
-    
+  end subroutine check_tempdrop_msg
+  
   !=======================================================================
 
   ! SUBROUTINE:
@@ -245,7 +250,7 @@ contains
 
   ! INPUT VARIABLES:
 
-  !
+  ! 
 
   ! OUTPUT VARIABLES:
 
@@ -1407,6 +1412,255 @@ contains
 
   ! SUBROUTINE:
 
+  ! sonde_bufr.f90
+
+  ! DESCRIPTION:
+  
+  ! This subroutine constucts an external Binary Universal Formatted
+  ! (BUFR) file containing each available observations within the
+  ! FORTRAN hsa_struct variable array.
+
+  ! INPUT VARIABLES:
+
+  ! * hsa; an array of FORTRAN hsa_struct variables.
+
+  !-----------------------------------------------------------------------
+
+  subroutine sonde_bufr(hsa)
+
+    ! Define variables passed to routine
+
+    type(hsa_struct)                                                    :: hsa(:)
+
+    ! Define variables computed within routine
+
+    type(bufr_struct)                                                   :: bufr
+    type(bufr_info_struct)                                              :: bufr_info
+    type(meteo_struct)                                                  :: meteo
+    character(len=500)                                                  :: filename
+    character(len=500)                                                  :: lbufr_filepath
+    character(len=8)                                                    :: cacobid
+    character(len=6)                                                    :: acid
+    character(len=8)                                                    :: cdate
+    character(len=6)                                                    :: ctime
+    character(len=6)                                                    :: obsn
+    character(len=2)                                                    :: msnid
+    real(r_double)                                                      :: anljday
+    real(r_double)                                                      :: obsjday
+    real(r_double)                                                      :: racobid
+    integer                                                             :: dd
+    integer                                                             :: hh
+    integer                                                             :: mm
+    integer                                                             :: nn
+    integer                                                             :: ss
+    integer                                                             :: strstrt
+    integer                                                             :: strstop
+    integer                                                             :: yyyy
+
+    ! Define counting variables
+
+    integer                                                             :: i, j
+
+    !=====================================================================
+
+    ! Define local variables
+
+    equivalence(racobid,cacobid)
+    call time_methods_date_attributes(analdate,yyyy,mm,dd,hh,nn,ss)
+    call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,anljday)
+    bufr_info%filename = bufr_info_filepath
+    call fileio_interface_read(bufr_info)
+    bufr%hdstr         = 'SID XOB YOB DHR TYP'
+    bufr%obstr         = 'POB QOB TOB UOB VOB ZOB'
+    bufr%qcstr         = 'PQM QQM TQM WQM ZQM'
+    bufr%oestr         = 'POE QOE TOE WOE ZOE'
+    bufr%subset        = trim(adjustl(bufr_info%subset))
+    bufr%mxmn          = 6
+    bufr%mxlv          = 1
+    lbufr_filepath     = trim(adjustl(bufr_filepath))
+    call bufrio_interface_idate(analdate,bufr)
+    call bufrio_interface_open(lbufr_filepath,bufr_tblpath,bufr,.false.,   &
+         & .false.,.true.)
+
+    ! Loop through local variable
+
+    do i = 1, size(hsa)
+
+       ! Define local variables
+       
+       strstrt  = index(trim(adjustl(hsa(i)%filename)),'/',back=.true.)    &
+            & + 1
+       strstop  = len(trim(adjustl(hsa(i)%filename)))
+       filename = trim(adjustl(hsa(i)%filename(strstrt:strstop)))
+       msnid    = filename(1:2)
+       acid     = filename(1:6)
+       obsn     = filename(7:8)
+
+       ! Check local variable and proceed accordingly
+
+       if(trim(adjustl(msnid)) .eq. 'AF') then
+
+          ! Define local variables
+
+          write(cacobid,500) trim(adjustl(acid(3:5))), trim(adjustl(obsn))
+
+       end if ! if(trim(adjustl(msnid)) .eq. 'AF')
+
+       ! Check local variable and proceed accordingly
+
+       if(trim(adjustl(msnid)) .eq. 'NA') then
+
+          ! Define local variables
+
+          write(cacobid,501) trim(adjustl(obsn))
+
+       end if ! if(trim(adjustl(msnid)) .eq. 'NA')
+
+       ! Check local variable and proceed accordingly
+
+       if(trim(adjustl(msnid)) .eq. 'NO') then
+
+          ! Define local variables
+
+          write(cacobid,502) trim(adjustl(acid(5:5))), trim(adjustl(obsn))
+
+       end if ! if(trim(adjustl(msnid)) .eq. 'NO')
+
+       ! Loop through local variable
+
+       do j = 1, hsa(i)%nz
+
+          ! Check local variable and proceed accordingly
+
+          if((hsa(i)%yymmdd(j) .ne. hsa_spval) .and. ((hsa(i)%tail(j) .eq. &
+               & 'SIGL') .or. (hsa(i)%tail(j) .eq. 'MANL'))) then
+
+             ! Define local variables
+
+             call variable_interface_setup_struct(bufr)
+             write(cdate,'(i8)')        (20000000 +                        &
+                  & (int(hsa(i)%yymmdd(j))))
+             write(ctime,'(i4.4,i2.2)') hsa(i)%gmt(j), 0
+             write(bufr%cdate,503) cdate(1:4), cdate(5:6), cdate(7:8),     &
+                  & ctime(1:2), ctime(3:4), ctime(5:6)
+             call time_methods_date_attributes(bufr%cdate,yyyy,mm,dd,hh,   &
+                  & nn,ss)
+
+             ! Compute local variables
+
+             call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,obsjday)
+
+             ! Define local variables
+
+             bufr%hdr(1) = dble(racobid)
+             bufr%hdr(2) = dble(-1.0*hsa(i)%lon(j) + 360.0)
+             bufr%hdr(3) = dble(hsa(i)%lat(j))
+             bufr%hdr(4) = (obsjday - anljday)*dble(24.0)
+             bufr%hdr(5) = bufr_info%obs_type_mass
+             meteo%nz    = 1
+             call variable_interface_setup_struct(meteo)
+
+             ! Check local variable and proceed accordingly
+
+             if(hsa(i)%t(j) .ne. hsa_spval) then
+
+                ! Define local variables
+
+                bufr%obs(1,1) = hsa(i)%p(j)
+                bufr%obs(3,1) = hsa(i)%t(j)
+                bufr%obs(6,1) = hsa(i)%z(j)
+                bufr%qcf(1,1) = 2.0
+                bufr%qcf(3,1) = 2.0
+                bufr%qcf(6,1) = 2.0
+                
+                ! Check local variable and proceed accordingly
+
+                if(hsa(i)%rh(j) .ne. hsa_spval) then
+
+                   ! Define local variables
+
+                   meteo%p(1)  = dble(hsa(i)%p(j)*100.0)
+                   meteo%rh(1) = dble(hsa(i)%rh(j))
+                   meteo%t(1)  = dble(hsa(i)%t(j) + 273.15)
+
+                   ! Compute local variables
+
+                   call meteo_methods_spechumd(meteo)
+
+                   ! Define local variables
+                   
+                   bufr%obs(2,1) = real(meteo%q(1))*1000.0*1000.0
+                   bufr%qcf(2,1) = 2.0 
+
+                end if ! if(hsa(i)%rh(j) .ne. hsa_spval)
+
+                ! Define local variables
+
+                call bufrio_interface_write(bufr)
+
+             end if ! if(hsa(i)%t(j) .ne. hsa_spval)
+
+             ! Deallocate memory for local variables
+
+             call variable_interface_cleanup_struct(bufr)
+             call variable_interface_cleanup_struct(meteo)
+
+             ! Define local variables
+
+	     call variable_interface_setup_struct(bufr)
+             bufr%hdr(1) = dble(racobid)
+             bufr%hdr(2) = dble(-1.0*hsa(i)%lon(j) + 360.0)
+             bufr%hdr(3) = dble(hsa(i)%lat(j))
+             bufr%hdr(4) = (obsjday - anljday)*dble(24.0)
+             bufr%hdr(5) = bufr_info%obs_type_wind
+
+	     ! Check local variable and proceed accordingly
+
+             if(hsa(i)%u(j) .ne. hsa_spval .and. hsa(i)%v(j) .ne.          &
+                  & hsa_spval) then
+
+                ! Define local variables
+
+                bufr%obs(1,1) = hsa(i)%p(j)
+                bufr%obs(4,1) = hsa(i)%u(j)
+                bufr%obs(5,1) = hsa(i)%v(j)
+                bufr%obs(6,1) = hsa(i)%z(j)
+                bufr%qcf(1,1) = 2.0
+                bufr%qcf(4,1) = 2.0
+                bufr%qcf(6,1) = 2.0
+                call bufrio_interface_write(bufr)
+
+             end if ! if(hsa(i)%u(j) .ne. hsa_spval .and. hsa(i)%v(j)
+                    ! .ne.  hsa_spval)
+
+             ! Deallocate memory for local variables
+          
+	     call variable_interface_cleanup_struct(bufr)           
+             
+          end if ! if((hsa(i)%yymmdd(j) .ne. hsa_spval)
+                 ! .and. ((hsa(i)%tail(j) .eq. 'SIGL')
+                 ! .or. (hsa(i)%tail(j) .eq. 'MANL')))
+             
+       end do ! do j = 1, hsa(i)%nz
+
+    end do ! do i = 1, size(hsa)
+
+    ! Define local variables
+
+    call bufrio_interface_close(.false.,.true.)
+500 format(a3,a2,'A')
+501 format('872',a2,'A')
+502 format('AA',a1,a2,'A')
+503 format(a4,'-',a2,'-',a2,'_',a2,':',a2,':',a2)
+
+    !=====================================================================
+
+  end subroutine sonde_bufr
+  
+  !=======================================================================
+
+  ! SUBROUTINE:
+
   ! sonde_drift.f90
 
   ! DESCRIPTION:
@@ -1420,7 +1674,7 @@ contains
   ! formatted data record with the new timestamps and geographical
   ! coordinates is written to:
 
-  ! <datapath>/<aircraft ID>>_<observation number>_<timestamp>.hsa.drft
+  ! <datapath>/<aircraft ID>_<observation number>_<timestamp>.hsa.drft
 
   ! REFERENCES:
 
