@@ -62,14 +62,14 @@ contains
   ! INPUT VARIABLES:
 
   ! * grid; a FORTRAN grid_struct variable containing the initial
-  !   geographical position (lon and lat) and the heading (head;
-  !   degrees) and distance (dist; meters); all geographical position
-  !   units are assumed to be degrees.
+  !   geographical position (gclon and gclat) and the heading (gchead;
+  !   degrees) and distance (gcdist; meters); all geographical
+  !   position units are assumed to be degrees.
 
   ! OUTPUT VARIABLES:
 
   ! * grid; a FORTRAN grid_struct variable containing the newly
-  !   computed geographical position (lon and lat).
+  !   computed geographical position (gclon and gclat).
 
   !-----------------------------------------------------------------------
 
@@ -91,10 +91,10 @@ contains
 
     ! Define local variables
 
-    lat  = grid%lat*deg2rad
-    lon  = grid%lon*deg2rad
-    head = grid%head*deg2rad
-    dist = (grid%dist/rearth_equator)
+    lat  = grid%gclat*deg2rad
+    lon  = grid%gclon*deg2rad
+    head = grid%gchead*deg2rad
+    dist = (grid%gcdist/rearth_equator)
 
     ! Compute local variables
 
@@ -105,8 +105,8 @@ contains
 
     ! Define local variables
 
-    grid%lon = lon*rad2deg
-    grid%lat = lat*rad2deg
+    grid%gclon = lon*rad2deg
+    grid%gclat = lat*rad2deg
 
     !=====================================================================
 

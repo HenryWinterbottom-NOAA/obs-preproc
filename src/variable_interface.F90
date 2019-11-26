@@ -48,7 +48,6 @@ module variable_interface
   public :: interp_p_struct
   public :: interp_spline_struct
   public :: meteo_struct
-  public :: obs_flag_struct
   public :: sonde_struct
   public :: spval
   public :: statgrid_struct
@@ -61,7 +60,6 @@ module variable_interface
      module procedure finalize_interp_p_struct
      module procedure finalize_interp_spline_struct
      module procedure finalize_meteo_struct
-     module procedure finalize_obs_flag_struct
      module procedure finalize_sonde_struct
      module procedure finalize_statgrid_struct
      module procedure finalize_varinfo_struct
@@ -72,7 +70,6 @@ module variable_interface
      module procedure initialize_interp_p_struct
      module procedure initialize_interp_spline_struct
      module procedure initialize_meteo_struct
-     module procedure initialize_obs_flag_struct
      module procedure initialize_sonde_struct
      module procedure initialize_statgrid_struct
      module procedure initialize_varinfo_struct
@@ -106,10 +103,10 @@ module variable_interface
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
   type grid_struct
-     real(r_kind)                                                       :: lon
-     real(r_kind)                                                       :: lat
-     real(r_kind)                                                       :: dist
-     real(r_kind)                                                       :: head
+     real(r_kind)                                                       :: gclon
+     real(r_kind)                                                       :: gclat
+     real(r_kind)                                                       :: gcdist
+     real(r_kind)                                                       :: gchead
   end type grid_struct            ! type grid_struct
   type hsa_struct
      character(len=4),          dimension(:),               allocatable :: tail
@@ -189,14 +186,6 @@ module variable_interface
      real(r_double)                                                     :: psfc
      integer                                                            :: nz
   end type meteo_struct           ! type meteo_struct  
-  type obs_flag_struct
-     character(len=500)                                                 :: filename
-     character(len=10),         dimension(:),               allocatable :: mneumonic
-     character(len=8),          dimension(:),               allocatable :: subset
-     real(r_kind),              dimension(:),               allocatable :: val
-     integer,                   dimension(:),               allocatable :: obs_type
-     integer                                                            :: nflag
-  end type obs_flag_struct        ! type obs_flag_struct
   type sonde_struct
      character(len=500),        dimension(:),               allocatable :: filename
      integer                                                            :: nsondes
@@ -432,42 +421,6 @@ contains
     !=====================================================================
     
   end subroutine finalize_meteo_struct  
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! finalize_obs_flag_struct.f90
-
-  ! DESCRIPTION:
-
-  ! This subroutine deallocates memory for all arrays within the
-  ! obs_flag_struct FORTRAN structure.
-
-  ! INPUT VARIABLES:
-
-  ! * grid; a FORTRAN obs_flag_struct variable.
-
-  !-----------------------------------------------------------------------
-
-  subroutine finalize_obs_flag_struct(grid)
-
-    ! Define variables passed routine
-
-    type(obs_flag_struct)                                               :: grid
-
-    !=====================================================================
-
-    ! Deallocate memory for local variables
-
-    if(allocated(grid%mneumonic)) deallocate(grid%mneumonic)
-    if(allocated(grid%subset))    deallocate(grid%subset)
-    if(allocated(grid%val))       deallocate(grid%val)
-    if(allocated(grid%obs_type))  deallocate(grid%obs_type)
-
-    !=====================================================================
-
-  end subroutine finalize_obs_flag_struct
 
   !=======================================================================
 
@@ -839,53 +792,6 @@ contains
     !=====================================================================
     
   end subroutine initialize_meteo_struct
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! initialize_obs_flag_struct.f90
-
-  ! DESCRIPTION:
-
-  ! This subroutine allocates memory for all arrays within the
-  ! obs_flag_struct FORTRAN structure.
-
-  ! INPUT VARIABLES:
-
-  ! * grid; a FORTRAN obs_flag_struct variable containing the
-  !   variables necessary to allocate and initialize the respective
-  !   variable arrays.
-
-  ! OUTPUT VARIABLES:
-
-  ! * grid; a FORTRAN obs_flag_struct variable containing allocated
-  !   and initialized variable arrays.
-
-  !-----------------------------------------------------------------------
-
-  subroutine initialize_obs_flag_struct(grid)
-
-    ! Define variables passed routine
-
-    type(obs_flag_struct)                                               :: grid
-
-    !=====================================================================
-
-    ! Allocate memory for local variables
-
-    if(.not. allocated(grid%mneumonic))                                    &
-         & allocate(grid%mneumonic(grid%nflag))
-    if(.not. allocated(grid%subset))                                       &
-         & allocate(grid%subset(grid%nflag))
-    if(.not. allocated(grid%val))                                          &
-         & allocate(grid%val(grid%nflag))
-    if(.not. allocated(grid%obs_type))                                     &
-         & allocate(grid%obs_type(grid%nflag))
-
-    !=====================================================================
-
-  end subroutine initialize_obs_flag_struct
 
   !=======================================================================
 

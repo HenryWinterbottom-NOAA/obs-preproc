@@ -40,7 +40,6 @@ module json_interface
   public :: json_interface_read
   interface json_interface_read
      module procedure read_bufr_info
-     module procedure read_obs_flag
   end interface json_interface_read
 
   !-----------------------------------------------------------------------
@@ -141,77 +140,6 @@ contains
     !=====================================================================
 
   end subroutine read_bufr_info
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! read_obs_flag.f90
-
-  ! DESCRIPTION:
-
-  ! This subroutine parses a JSON formatted file and defines elements
-  ! of the obs_flag_struct variable necessary to parse the JSON
-  ! formatted variable table (vtable) specfied by the user.
-
-  ! INPUT VARIABLES:
-
-  ! * obs_flag; a FORTRAN obs_flag_struct variable containing the
-  !   observation JSON vtable file path.
-
-  ! OUTPUT VARIABLES:
-
-  ! * obs_flag; a FORTRAN obs_flag_struct variable containing the
-  !   observation JSON vtable attributes.
-
-  !-----------------------------------------------------------------------
-
-  subroutine read_obs_flag(obs_flag)
-
-    ! Define variables passed to routine
-
-    type(obs_flag_struct)                                               :: obs_flag
-
-    ! Define variables computed within routine
-
-    type(fson_value),                                           pointer :: json_data
-    type(fson_value),                                           pointer :: json_item
-    integer                                                             :: json_size
-
-    ! Define counting variables
-
-    integer                                                             :: i
-
-    !=====================================================================
-
-    ! Define local variables
-
-    call json_interface_nrecs(obs_flag%filename,json_size)
-    obs_flag%nflag = json_size
-    json_data => fson_parse(trim(adjustl(obs_flag%filename)))
-    call variable_interface_setup_struct(obs_flag)
-
-    ! Loop through local variable
-    
-    do i = 1, json_size
-
-       ! Define local variables
-
-       json_item => fson_value_get(json_data,i)
-       call fson_get(json_item,'mneumonic',obs_flag%mneumonic(i))
-       call fson_get(json_item,'subset',obs_flag%subset(i))       
-       call fson_get(json_item,'val',obs_flag%val(i))       
-       call fson_get(json_item,'obs_type',obs_flag%obs_type(i))
-
-    end do ! do i = 1, json_size
-
-    ! Define local variables
-
-    call fson_destroy(json_data)
-
-    !=====================================================================
-
-  end subroutine read_obs_flag
 
   !=======================================================================
 

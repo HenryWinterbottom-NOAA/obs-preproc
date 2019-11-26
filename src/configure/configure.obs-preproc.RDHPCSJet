@@ -18,6 +18,5 @@ BUFR          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 FSON          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 NETCDF        = /apps/netcdf/4.2.1.1-intel
 SLATEC        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
-SLINT         = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 SONDELIB      = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 SPLINE        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
