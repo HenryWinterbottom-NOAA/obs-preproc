@@ -46,6 +46,7 @@ module fileio_interface
   interface fileio_interface_read
      module procedure read_bufr_info
      module procedure read_hsa
+     module procedure read_ncep_tracker
      module procedure read_sonde_filenames
      module procedure read_tcv
   end interface fileio_interface_read
@@ -176,6 +177,63 @@ contains
     !=====================================================================
 
   end subroutine read_hsa
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_ncep_tracker.f90
+
+  ! DESCRIPTION:
+
+  !
+
+  ! INPUT VARIABLES:
+
+  !
+
+  ! OUTPUT VARIABLES:
+
+  !
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_ncep_tracker(filename,ncep_trkr)
+
+    ! Define variables passed to routine
+
+    type(ncep_trkr_struct),     dimension(:),               allocatable :: ncep_trkr
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=1)                                                    :: dummy
+    integer                                                             :: ntcs
+
+    !=====================================================================
+
+    ! Define local variables
+
+    ntcs = 0
+    open(99,file=trim(adjustl(filename)),form='formatted')
+1000 read(99,*,end=1001) dummy
+    ntcs = ntcs + 1
+    goto 1000
+1001 continue
+    close(99)
+
+    
+
+    ! Define local variables
+    
+500 format(a2,', ',a2,', ',i10.10,', 03, ',a4,', ',i3.3,', ',i3,a1,', ',    &
+         & i4,a1,', ',i3,', ',i4,', ',a12,4(', ',i4.4),2(', ',i4),', ',     &
+         & i3,a79,',       THERMO PARAMS',3(', ',i7),', ',a1,', ',i2,       &
+         & ', DT, -999')
+
+     !=====================================================================
+
+  end subroutine read_ncep_tracker
   
   !=======================================================================
 

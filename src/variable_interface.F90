@@ -49,6 +49,7 @@ module variable_interface
   public :: interp_spline_struct
   public :: kdtree_struct
   public :: meteo_struct
+  public :: ncep_trkr_struct
   public :: sonde_struct
   public :: spval
   public :: statgrid_struct
@@ -198,7 +199,13 @@ module variable_interface
      real(r_kind),              dimension(:),               allocatable :: head
      real(r_double)                                                     :: psfc
      integer                                                            :: nz
-  end type meteo_struct           ! type meteo_struct  
+  end type meteo_struct           ! type meteo_struct
+  type ncep_trkr_struct
+     real(r_kind)                                                       :: lat
+     real(r_kind)                                                       :: lon
+     integer                                                            :: pcen
+     integer                                                            :: vmax
+  end type ncep_trkr_struct       ! type ncep_trkr_struct
   type sonde_struct
      character(len=500),        dimension(:),               allocatable :: filename
      integer                                                            :: nsondes

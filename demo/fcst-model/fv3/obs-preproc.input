@@ -19,5 +19,6 @@ is_fv3 = T
 /
 
 &tc
-tcv_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/tcvitals.2017091000'
+ncep_trkr_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/output.regional.atcfunix'
+tcv_filename       = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/tcvitals.2017091000'
 /
