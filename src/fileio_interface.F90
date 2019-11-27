@@ -47,6 +47,7 @@ module fileio_interface
      module procedure read_bufr_info
      module procedure read_hsa
      module procedure read_sonde_filenames
+     module procedure read_tcv
   end interface fileio_interface_read
   interface fileio_interface_varinfo
      module procedure varinfo_sonde_meteo
@@ -250,6 +251,137 @@ contains
     !=====================================================================
 
   end subroutine read_sonde_filenames
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_tcv.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine ingests an external file containing tropical
+  ! cyclone attributes (e.g., TC-vitals).
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the path to the
+  !   TCV file.
+
+  ! * tcv; a FORTRAN tcv_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * tcv; a FORTRAN tcv_struct variable now containing the tropical
+  !   cyclone attributes retrieved from the user specified file.
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_tcv(filename,tcv)
+
+    ! Define variables passed to routine
+
+    type(tcv_struct),           dimension(:),               allocatable :: tcv
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=1)                                                    :: dummy
+    real(r_kind)                                                        :: lat_scale
+    real(r_kind)                                                        :: lon_scale
+    integer                                                             :: ntcs
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Define local variables
+
+    ntcs = 0
+    open(99,file=trim(adjustl(filename)),form='formatted')
+1000 read(99,*,end=1001) dummy
+    ntcs = ntcs + 1
+    goto 1000
+1001 continue
+    close(99)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(tcv)) allocate(tcv(ntcs))
+
+    ! Define local variables
+
+    open(99,file=trim(adjustl(filename)),form='formatted')
+
+    ! Loop through local variable
+
+    do i = 1, ntcs
+
+       ! Define local variables
+
+       read(99,500) tcv(i)%center, tcv(i)%id, tcv(i)%name, tcv(i)%century, &
+            & tcv(i)%yymmdd, tcv(i)%hhmm, tcv(i)%lati, tcv(i)%latns,       &
+            & tcv(i)%loni, tcv(i)%lonew, tcv(i)%stdir, tcv(i)%stspd,       &
+            & tcv(i)%pcen, tcv(i)%penv, tcv(i)%penvrad, tcv(i)%vmax,       &
+            & tcv(i)%vmaxrad, tcv(i)%r15ne, tcv(i)%r15se, tcv(i)%r15sw,    &
+            & tcv(i)%r15nw, tcv(i)%depth
+
+       ! Check local variable and proceed accordingly
+       
+       if(debug) then
+
+          ! Define local variables
+
+          write(6,'(/)')
+          write(6,501)
+          write(6,500) tcv(i)%center, tcv(i)%id, tcv(i)%name,              &
+               & tcv(i)%century, tcv(i)%yymmdd, tcv(i)%hhmm, tcv(i)%lati,  &
+               & tcv(i)%latns, tcv(i)%loni, tcv(i)%lonew, tcv(i)%stdir,    &
+               & tcv(i)%stspd, tcv(i)%pcen, tcv(i)%penv, tcv(i)%penvrad,   &
+               & tcv(i)%vmax, tcv(i)%vmaxrad, tcv(i)%r15ne, tcv(i)%r15se,  &
+               & tcv(i)%r15sw, tcv(i)%r15nw, tcv(i)%depth
+          
+       end if ! if(debug)
+
+       ! Define local variables
+       
+       lat_scale = 1.0/10.0
+       lon_scale = 1.0/10.0
+
+       ! Check local variable and proceed accordingly
+
+       if(tcv(i)%latns .eq. 'S') lat_scale = -1.0*lat_scale
+       if(tcv(i)%lonew .eq. 'W') lon_scale = -1.0*lon_scale
+
+       ! Compute local variables
+
+       tcv(i)%lat = real(tcv(i)%lati)*lat_scale
+       tcv(i)%lon = real(tcv(i)%loni)*lon_scale
+
+       ! Check local variable and proceed accordingly
+
+       if(is_fv3) then
+
+          ! Define local variables
+
+          tcv(i)%lon = tcv(i)%lon + 360.0
+
+       end if ! if(is_fv3)
+
+    end do ! do i = 1, ntcs
+
+    ! Define local variables
+
+    close(99)
+500 format(a4,1x,a3,1x,a9,1x,i2,i6,1x,i4,1x,i3,a1,1x,i4,a1,1x,i3,1x,i3,    &
+         & 3(1x,i4),1x,i2,1x,i3,1x,4(i4,1x),a1)
+501 format('READ_TCV: Read the following TC vitals record:')
+
+    !=====================================================================
+
+  end subroutine read_tcv
 
   !=======================================================================
 

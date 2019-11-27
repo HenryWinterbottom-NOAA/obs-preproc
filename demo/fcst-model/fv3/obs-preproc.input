@@ -1,0 +1,23 @@
+&share
+analdate      = '2019-09-10_01:00:00'
+datapath      = './'
+debug         = T
+is_fcst_model = T
+/
+
+&bufrio
+bufr_filepath      = './prepbufr.fv3'
+bufr_info_filepath = '../demo/fcst-model/bufr_info.json'
+bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
+/
+
+&fcst_mdl
+is_fv3 = T
+/
+
+&sonde
+/
+
+&tc
+tcv_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/tcvitals.2017091000'
+/

@@ -43,6 +43,12 @@ fileio_interface.o: fileio_interface.F90 \
 		    netcdf_interface.o \
 		    variable_interface.o
 
+forecast_model_interface.o: forecast_model_interface.F90 \
+			    fileio_interface.o \
+			    kinds_interface.o \
+			    namelist_interface.o \
+			    variable_interface.o
+
 grid_methods_interface.o: grid_methods_interface.F90 \
 			  constants_interface.o \
 			  kinds_interface.o \
@@ -71,6 +77,7 @@ netcdf_interface.o: netcdf_interface.F90 \
 		    variable_interface.o
 
 observations_interface.o: observations_interface.F90 \
+			  forecast_model_interface.o \
 			  kinds_interface.o \
 			  sonde_tempdrop_interface.o 
 

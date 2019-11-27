@@ -47,10 +47,12 @@ module variable_interface
   public :: hsa_struct
   public :: interp_p_struct
   public :: interp_spline_struct
+  public :: kdtree_struct
   public :: meteo_struct
   public :: sonde_struct
   public :: spval
   public :: statgrid_struct
+  public :: tcv_struct  
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   public :: varinfo_struct
@@ -59,6 +61,7 @@ module variable_interface
      module procedure finalize_hsa_struct
      module procedure finalize_interp_p_struct
      module procedure finalize_interp_spline_struct
+     module procedure finalize_kdtree_struct
      module procedure finalize_meteo_struct
      module procedure finalize_sonde_struct
      module procedure finalize_statgrid_struct
@@ -69,6 +72,7 @@ module variable_interface
      module procedure initialize_hsa_struct
      module procedure initialize_interp_p_struct
      module procedure initialize_interp_spline_struct
+     module procedure initialize_kdtree_struct
      module procedure initialize_meteo_struct
      module procedure initialize_sonde_struct
      module procedure initialize_statgrid_struct
@@ -160,6 +164,15 @@ module variable_interface
      real(r_kind)                                                       :: y
      integer                                                            :: n    
   end type interp_spline_struct   ! type interp_spline_struct
+  type kdtree_struct
+     real(r_kind),              dimension(:,:),             allocatable :: r2dist
+     real(r_kind)                                                       :: r2
+     integer,                   dimension(:,:),             allocatable :: idx
+     integer                                                            :: nalloc
+     integer                                                            :: ncoords
+     integer                                                            :: nfound
+     integer                                                            :: nn
+  end type kdtree_struct          ! type kdtree_struct    
   type meteo_struct
      character(len=500)                                                 :: tempdrop_name
      character(len=5)                                                   :: acid
@@ -200,6 +213,36 @@ module variable_interface
      integer                                                            :: n
      integer                                                            :: nvals
   end type statgrid_struct        ! type statgrid_struct
+  type tcv_struct
+     character(len=9)                                                   :: name
+     character(len=4)                                                   :: center
+     character(len=3)                                                   :: id
+     character(len=1)                                                   :: depth
+     character(len=1)                                                   :: latns
+     character(len=1)                                                   :: lonew
+     real(r_kind)                                                       :: area_mnlat
+     real(r_kind)                                                       :: area_mnlon
+     real(r_kind)                                                       :: area_mxlat
+     real(r_kind)                                                       :: area_mxlon
+     real(r_kind)                                                       :: lat
+     real(r_kind)                                                       :: lon
+     integer                                                            :: century
+     integer                                                            :: hhmm
+     integer                                                            :: lati
+     integer                                                            :: loni
+     integer                                                            :: pcen
+     integer                                                            :: penv
+     integer                                                            :: penvrad
+     integer                                                            :: r15ne
+     integer                                                            :: r15se
+     integer                                                            :: r15sw
+     integer                                                            :: r15nw
+     integer                                                            :: stdir
+     integer                                                            :: stspd
+     integer                                                            :: vmax
+     integer                                                            :: vmaxrad
+     integer                                                            :: yymmdd
+  end type tcv_struct             ! type tcv_struct  
   type varinfo_struct
      character(len=500),        dimension(:,:,:),           allocatable :: varattrs
      character(len=25),         dimension(:),               allocatable :: varname
@@ -371,7 +414,41 @@ contains
 
     !=====================================================================
     
-  end subroutine finalize_interp_spline_struct  
+  end subroutine finalize_interp_spline_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_kdtree_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! kdtree_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN kdtree_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_kdtree_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(kdtree_struct)                                                 :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%r2dist)) deallocate(grid%r2dist)
+    if(allocated(grid%idx))    deallocate(grid%idx)
+
+    !=====================================================================
+
+  end subroutine finalize_kdtree_struct  
 
   !=======================================================================
 
@@ -717,6 +794,47 @@ contains
     !=====================================================================
     
   end subroutine initialize_interp_spline_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! initialize_kdtree_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! kdtree_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN kdtree_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN kdtree_struct variable where all arrays are
+  !   allocated and initialized (when necessary).
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_kdtree_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(kdtree_struct)                                                 :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%r2dist))                                       &
+         & allocate(grid%r2dist(grid%ncoords,grid%nn))
+    if(.not. allocated(grid%idx))                                          &
+         & allocate(grid%idx(grid%ncoords,grid%nn))
+
+    !=====================================================================
+
+  end subroutine initialize_kdtree_struct  
   
   !=======================================================================
 

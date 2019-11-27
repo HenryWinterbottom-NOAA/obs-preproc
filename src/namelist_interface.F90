@@ -107,13 +107,21 @@ module namelist_interface
   character(len=500)                                                    :: &
        & datapath = './'
   character(len=500)                                                    :: &
+       & ncep_trkr_filename = 'NOT USED' ! NEED
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
+  character(len=500)                                                    :: &
+       & tcv_filename = 'NOT USED' ! NEED
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
   logical                                                               :: &
        & debug = .false.
+  logical                                                               :: &
+       & is_fcst_model = .false. ! NEED
+  logical                                                               :: &
+       & is_fv3 = .false. ! NEED
   logical                                                               :: &
        & is_sonde = .false.
   logical                                                               :: &
@@ -124,11 +132,14 @@ module namelist_interface
        & tempdrop_normalize = .false.
   logical                                                               :: &
        & tempdrop_write_nc_skewt = .false.  
-  namelist /share/    analdate, datapath, debug, is_sonde
-  namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath  
+  namelist /share/    analdate, datapath, debug, is_fcst_model,            &
+       & is_sonde
+  namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath
+  namelist /fcst_mdl/ is_fv3
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
+  namelist /tc/       ncep_trkr_filename, tcv_filename
   
   !-----------------------------------------------------------------------
 
@@ -177,7 +188,9 @@ contains
             action = 'read')
        read(unit_nml,NML = share)
        read(unit_nml,NML = bufrio)
+       read(unit_nml,NML = fcst_mdl)
        read(unit_nml,NML = sonde)
+       read(unit_nml,NML = tc)
        close(unit_nml)
 
     else  ! if(is_it_there)
