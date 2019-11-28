@@ -62,20 +62,30 @@ contains
 
     ! Define variables computed within routine
 
-    type(tcv_struct),           dimension(:),               allocatable :: tcv
+    type(tcinfo_struct),        dimension(:),               allocatable :: tcinfo
+
+    ! Define counting variables
+
+    integer                                                             :: i
 
     !=====================================================================
 
     ! Define local variables
 
-    call fileio_interface_read(tcv_filename,tcv) 
+    call fileio_interface_read(tcinfo_filename,tcinfo) 
+
+    ! Loop through local variables
+
+    do i = 1, size(tcinfo)
+
+       print*, i
 
 
-
-
+    end do ! do i = 1, size(tcinfo)
+       
     ! Deallocate memory for local variables
 
-    if(allocated(tcv)) deallocate(tcv)
+    if(allocated(tcinfo)) deallocate(tcinfo)
     
     !=====================================================================
 

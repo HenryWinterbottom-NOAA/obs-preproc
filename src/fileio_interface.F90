@@ -46,9 +46,8 @@ module fileio_interface
   interface fileio_interface_read
      module procedure read_bufr_info
      module procedure read_hsa
-     module procedure read_ncep_tracker
      module procedure read_sonde_filenames
-     module procedure read_tcv
+     module procedure read_tcinfo
   end interface fileio_interface_read
   interface fileio_interface_varinfo
      module procedure varinfo_sonde_meteo
@@ -177,63 +176,6 @@ contains
     !=====================================================================
 
   end subroutine read_hsa
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! read_ncep_tracker.f90
-
-  ! DESCRIPTION:
-
-  !
-
-  ! INPUT VARIABLES:
-
-  !
-
-  ! OUTPUT VARIABLES:
-
-  !
-
-  !-----------------------------------------------------------------------
-
-  subroutine read_ncep_tracker(filename,ncep_trkr)
-
-    ! Define variables passed to routine
-
-    type(ncep_trkr_struct),     dimension(:),               allocatable :: ncep_trkr
-    character(len=500)                                                  :: filename
-
-    ! Define variables computed within routine
-
-    character(len=1)                                                    :: dummy
-    integer                                                             :: ntcs
-
-    !=====================================================================
-
-    ! Define local variables
-
-    ntcs = 0
-    open(99,file=trim(adjustl(filename)),form='formatted')
-1000 read(99,*,end=1001) dummy
-    ntcs = ntcs + 1
-    goto 1000
-1001 continue
-    close(99)
-
-    
-
-    ! Define local variables
-    
-500 format(a2,', ',a2,', ',i10.10,', 03, ',a4,', ',i3.3,', ',i3,a1,', ',    &
-         & i4,a1,', ',i3,', ',i4,', ',a12,4(', ',i4.4),2(', ',i4),', ',     &
-         & i3,a79,',       THERMO PARAMS',3(', ',i7),', ',a1,', ',i2,       &
-         & ', DT, -999')
-
-     !=====================================================================
-
-  end subroutine read_ncep_tracker
   
   !=======================================================================
 
@@ -314,39 +256,39 @@ contains
 
   ! SUBROUTINE:
 
-  ! read_tcv.f90
+  ! read_tcinfo.f90
 
   ! DESCRIPTION:
 
   ! This subroutine ingests an external file containing tropical
-  ! cyclone attributes (e.g., TC-vitals).
+  ! cyclone information required to generate synthetic, relocated
+  ! observations.
 
   ! INPUT VARIABLES:
 
   ! * filename; a FORTRAN character string specifying the path to the
-  !   TCV file.
+  !   TC information file.
 
-  ! * tcv; a FORTRAN tcv_struct variable.
+  ! * tcinfo; a FORTRAN tcinfo_struct variable.
 
   ! OUTPUT VARIABLES:
 
-  ! * tcv; a FORTRAN tcv_struct variable now containing the tropical
-  !   cyclone attributes retrieved from the user specified file.
+  ! * tcinfo; a FORTRAN tcinfo_struct variable now containing the
+  !   tropical cyclone attributes retrieved from the user specified
+  !   file.
 
   !-----------------------------------------------------------------------
 
-  subroutine read_tcv(filename,tcv)
+  subroutine read_tcinfo(filename,tcinfo)
 
     ! Define variables passed to routine
 
-    type(tcv_struct),           dimension(:),               allocatable :: tcv
+    type(tcinfo_struct),        dimension(:),               allocatable :: tcinfo
     character(len=500)                                                  :: filename
 
     ! Define variables computed within routine
 
     character(len=1)                                                    :: dummy
-    real(r_kind)                                                        :: lat_scale
-    real(r_kind)                                                        :: lon_scale
     integer                                                             :: ntcs
 
     ! Define counting variables
@@ -367,7 +309,7 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(tcv)) allocate(tcv(ntcs))
+    if(.not. allocated(tcinfo)) allocate(tcinfo(ntcs))
 
     ! Define local variables
 
@@ -379,12 +321,9 @@ contains
 
        ! Define local variables
 
-       read(99,500) tcv(i)%center, tcv(i)%id, tcv(i)%name, tcv(i)%century, &
-            & tcv(i)%yymmdd, tcv(i)%hhmm, tcv(i)%lati, tcv(i)%latns,       &
-            & tcv(i)%loni, tcv(i)%lonew, tcv(i)%stdir, tcv(i)%stspd,       &
-            & tcv(i)%pcen, tcv(i)%penv, tcv(i)%penvrad, tcv(i)%vmax,       &
-            & tcv(i)%vmaxrad, tcv(i)%r15ne, tcv(i)%r15se, tcv(i)%r15sw,    &
-            & tcv(i)%r15nw, tcv(i)%depth
+       read(99,*) tcinfo(i)%id, tcinfo(i)%obs_clat, tcinfo(i)%mdl_clat,    &
+            & tcinfo(i)%obs_clon, tcinfo(i)%mdl_clon, tcinfo(i)%obs_pcen,  &
+            & tcinfo(i)%mdl_pcen, tcinfo(i)%obs_vmax, tcinfo(i)%mdl_vmax
 
        ! Check local variable and proceed accordingly
        
@@ -394,29 +333,13 @@ contains
 
           write(6,'(/)')
           write(6,501)
-          write(6,500) tcv(i)%center, tcv(i)%id, tcv(i)%name,              &
-               & tcv(i)%century, tcv(i)%yymmdd, tcv(i)%hhmm, tcv(i)%lati,  &
-               & tcv(i)%latns, tcv(i)%loni, tcv(i)%lonew, tcv(i)%stdir,    &
-               & tcv(i)%stspd, tcv(i)%pcen, tcv(i)%penv, tcv(i)%penvrad,   &
-               & tcv(i)%vmax, tcv(i)%vmaxrad, tcv(i)%r15ne, tcv(i)%r15se,  &
-               & tcv(i)%r15sw, tcv(i)%r15nw, tcv(i)%depth
+          write(6,500) tcinfo(i)%id, tcinfo(i)%obs_clat,                   &
+               & tcinfo(i)%mdl_clat, tcinfo(i)%obs_clon,                   &
+               & tcinfo(i)%mdl_clon, tcinfo(i)%obs_pcen,                   &
+               & tcinfo(i)%mdl_pcen, tcinfo(i)%obs_vmax,                   &
+               & tcinfo(i)%mdl_vmax 
           
        end if ! if(debug)
-
-       ! Define local variables
-       
-       lat_scale = 1.0/10.0
-       lon_scale = 1.0/10.0
-
-       ! Check local variable and proceed accordingly
-
-       if(tcv(i)%latns .eq. 'S') lat_scale = -1.0*lat_scale
-       if(tcv(i)%lonew .eq. 'W') lon_scale = -1.0*lon_scale
-
-       ! Compute local variables
-
-       tcv(i)%lat = real(tcv(i)%lati)*lat_scale
-       tcv(i)%lon = real(tcv(i)%loni)*lon_scale
 
        ! Check local variable and proceed accordingly
 
@@ -424,7 +347,8 @@ contains
 
           ! Define local variables
 
-          tcv(i)%lon = tcv(i)%lon + 360.0
+          tcinfo(i)%mdl_clon = tcinfo(i)%mdl_clon + 360.0
+          tcinfo(i)%obs_clon = tcinfo(i)%obs_clon + 360.0
 
        end if ! if(is_fv3)
 
@@ -433,13 +357,12 @@ contains
     ! Define local variables
 
     close(99)
-500 format(a4,1x,a3,1x,a9,1x,i2,i6,1x,i4,1x,i3,a1,1x,i4,a1,1x,i3,1x,i3,    &
-         & 3(1x,i4),1x,i2,1x,i3,1x,4(i4,1x),a1)
-501 format('READ_TCV: Read the following TC vitals record:')
+500 format(a3,8(1x,f13.5))
+501 format('READ_TCINFO: Read the following TC information record:')
 
     !=====================================================================
 
-  end subroutine read_tcv
+  end subroutine read_tcinfo
 
   !=======================================================================
 

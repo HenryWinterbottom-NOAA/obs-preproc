@@ -107,11 +107,9 @@ module namelist_interface
   character(len=500)                                                    :: &
        & datapath = './'
   character(len=500)                                                    :: &
-       & ncep_trkr_filename = 'NOT USED' ! NEED
-  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
-       & tcv_filename = 'NOT USED' ! NEED
+       & tcinfo_filename = 'NOT USED' ! NEED
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
   character(len=19)                                                     :: &
@@ -139,7 +137,7 @@ module namelist_interface
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
-  namelist /tc/       ncep_trkr_filename, tcv_filename
+  namelist /tc/       tcinfo_filename
   
   !-----------------------------------------------------------------------
 

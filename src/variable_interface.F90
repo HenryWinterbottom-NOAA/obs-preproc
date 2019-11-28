@@ -49,11 +49,10 @@ module variable_interface
   public :: interp_spline_struct
   public :: kdtree_struct
   public :: meteo_struct
-  public :: ncep_trkr_struct
   public :: sonde_struct
   public :: spval
   public :: statgrid_struct
-  public :: tcv_struct  
+  public :: tcinfo_struct  
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   public :: varinfo_struct
@@ -200,12 +199,6 @@ module variable_interface
      real(r_double)                                                     :: psfc
      integer                                                            :: nz
   end type meteo_struct           ! type meteo_struct
-  type ncep_trkr_struct
-     real(r_kind)                                                       :: lat
-     real(r_kind)                                                       :: lon
-     integer                                                            :: pcen
-     integer                                                            :: vmax
-  end type ncep_trkr_struct       ! type ncep_trkr_struct
   type sonde_struct
      character(len=500),        dimension(:),               allocatable :: filename
      integer                                                            :: nsondes
@@ -220,36 +213,17 @@ module variable_interface
      integer                                                            :: n
      integer                                                            :: nvals
   end type statgrid_struct        ! type statgrid_struct
-  type tcv_struct
-     character(len=9)                                                   :: name
-     character(len=4)                                                   :: center
+  type tcinfo_struct
      character(len=3)                                                   :: id
-     character(len=1)                                                   :: depth
-     character(len=1)                                                   :: latns
-     character(len=1)                                                   :: lonew
-     real(r_kind)                                                       :: area_mnlat
-     real(r_kind)                                                       :: area_mnlon
-     real(r_kind)                                                       :: area_mxlat
-     real(r_kind)                                                       :: area_mxlon
-     real(r_kind)                                                       :: lat
-     real(r_kind)                                                       :: lon
-     integer                                                            :: century
-     integer                                                            :: hhmm
-     integer                                                            :: lati
-     integer                                                            :: loni
-     integer                                                            :: pcen
-     integer                                                            :: penv
-     integer                                                            :: penvrad
-     integer                                                            :: r15ne
-     integer                                                            :: r15se
-     integer                                                            :: r15sw
-     integer                                                            :: r15nw
-     integer                                                            :: stdir
-     integer                                                            :: stspd
-     integer                                                            :: vmax
-     integer                                                            :: vmaxrad
-     integer                                                            :: yymmdd
-  end type tcv_struct             ! type tcv_struct  
+     real(r_kind)                                                       :: mdl_clat
+     real(r_kind)                                                       :: mdl_clon
+     real(r_kind)                                                       :: mdl_pcen
+     real(r_kind)                                                       :: mdl_vmax
+     real(r_kind)                                                       :: obs_clat
+     real(r_kind)                                                       :: obs_clon
+     real(r_kind)                                                       :: obs_pcen
+     real(r_kind)                                                       :: obs_vmax
+  end type tcinfo_struct          ! type tcinfo_struct  
   type varinfo_struct
      character(len=500),        dimension(:,:,:),           allocatable :: varattrs
      character(len=25),         dimension(:),               allocatable :: varname
