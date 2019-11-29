@@ -63,6 +63,69 @@ module namelist_interface
   ! * debug; a FORTRAN logical value specifying whether to include
   !   debug information during execution.
 
+  ! * fv3_dyns_filename; a FORTRAN character string specifying the
+  !   path to the FV3 netcdf file containing the dynamical core
+  !   variables; namely, the following netcdf variables:
+
+  !   + T; temperature (K).
+  
+  !   + delp; pressure layer difference (Pa).
+  
+  !   + ua; zonal wind on at the center of the grid cell (meters per
+  !         second).
+
+  !   + va; meridional wind on at the center of the grid cell (meters
+  !         per second).
+
+  !   Both is_fcst_model and is_fv3 must both be .true. for this file
+  !   to be invoked.
+
+  ! * fv3_orog_filename; a FORTRAN character string specifying the
+  !   path to the FV3 netcdf file containing the orography and grid
+  !   variables; namely the following netcdf variables:
+
+  !   + geolat; the latitude coordinate at the center of the grid cell
+  !     (degrees).
+
+  !   + geolon; the longitude coordinate at the center of the grid
+  !     cell (degrees).
+
+  !   + slmsk; the land/sea mask.
+
+  !   Both is_fcst_model and is_fv3 must both be .true. for this file
+  !   to be invoked.
+
+  ! * fv3_static_filename; a FORTRAN character string specifying the
+  !   path to the FV3 netcdf file containing the static variables;
+  !   namely the following netcdf variables:
+
+  !   + hyam; the hybrid-pressure coordinate values for the model
+  !     layers.
+
+  !   + hybm; the hybrid-pressure coordinate values for the model
+  !     layers.
+
+  !   Both is_fcst_model and is_fv3 must both be .true. for this file
+  !   to be invoked.
+
+  ! * fv3_tracer_filename; a FORTRAN character string specifying the
+  !   path to the FV3 netcdf file containing the tracer variables;
+  !   namely the following netcdf variables:
+
+  !   + sphum; specific humidity (kilograms per kilogram).
+
+  !   Both is_fcst_model and is_fv3 must both be .true. for this file
+  !   to be invoked.
+  
+  ! * is_fcst_model; a FORTRAN logical value specifying whether the
+  !   observations to be formatted are computed from forecast model
+  !   fields.
+
+  ! * is_fv3; a FORTRAN logical value specifying whether the forecast
+  !   model, for the creation of observations from forecast model
+  !   fields, is from the FV3; is_fcst_model must be .true. to invoke
+  !   this option.
+  
   ! * is_sonde; a FORTRAN logical value specifying whether the
   !   observations to be formatted are derived from sondes.
 
@@ -72,6 +135,11 @@ module namelist_interface
   ! * sonde_filelist; a FORTRAN character string specifying the
   !   full-path to the external file containing a list of TEMPDROP
   !   formatted sondes to be decoded.
+
+  ! * tcinfo_filename; a FORTRAN character string specifying the path
+  !   to the ASCII formatted file containing the observed and model
+  !   forecast attributes for the respective TC events; is_fcst_model
+  !   must be .true. for this file to be invoked.
 
   ! * tempdrop_compute_drift; a FORTRAN logical value specifying
   !   whether to estimate the sonde drift, and the respective
@@ -107,9 +175,17 @@ module namelist_interface
   character(len=500)                                                    :: &
        & datapath = './'
   character(len=500)                                                    :: &
+       & fv3_dyns_filename = 'NOT USED'
+  character(len=500)                                                    :: &
+       & fv3_orog_filename = 'NOT USED'
+  character(len=500)                                                    :: &
+       & fv3_static_filename = 'NOT USED'
+  character(len=500)                                                    :: &
+       & fv3_tracer_filename = 'NOT USED'
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
-       & tcinfo_filename = 'NOT USED' ! NEED
+       & tcinfo_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
   character(len=19)                                                     :: &
@@ -117,9 +193,9 @@ module namelist_interface
   logical                                                               :: &
        & debug = .false.
   logical                                                               :: &
-       & is_fcst_model = .false. ! NEED
+       & is_fcst_model = .false.
   logical                                                               :: &
-       & is_fv3 = .false. ! NEED
+       & is_fv3 = .false.
   logical                                                               :: &
        & is_sonde = .false.
   logical                                                               :: &
@@ -133,7 +209,8 @@ module namelist_interface
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
        & is_sonde
   namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath
-  namelist /fcst_mdl/ is_fv3
+  namelist /fcst_mdl/ fv3_dyns_filename, fv3_orog_filename,                &
+       & fv3_static_filename, fv3_tracer_filename, is_fv3
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt

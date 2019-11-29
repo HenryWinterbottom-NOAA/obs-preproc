@@ -12,7 +12,11 @@ bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
 /
 
 &fcst_mdl
-is_fv3 = T
+fv3_dyns_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_core.res.nest02.tile7.nc'
+fv3_orog_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/C96_oro_data.tile7.nc'
+fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
+fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
+is_fv3              = T
 /
 
 &sonde

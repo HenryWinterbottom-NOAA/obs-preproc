@@ -63,7 +63,8 @@ contains
     ! Define variables computed within routine
 
     type(tcinfo_struct),        dimension(:),               allocatable :: tcinfo
-
+    type(fv3_struct)                                                    :: fv3
+    
     ! Define counting variables
 
     integer                                                             :: i
@@ -72,13 +73,14 @@ contains
 
     ! Define local variables
 
-    call fileio_interface_read(tcinfo_filename,tcinfo) 
+    call fileio_interface_read(tcinfo_filename,tcinfo)
+    call fileio_interface_read(fv3)
 
     ! Loop through local variables
 
     do i = 1, size(tcinfo)
 
-       print*, i
+
 
 
     end do ! do i = 1, size(tcinfo)
@@ -86,6 +88,7 @@ contains
     ! Deallocate memory for local variables
 
     if(allocated(tcinfo)) deallocate(tcinfo)
+    call variable_interface_cleanup_struct(fv3)
     
     !=====================================================================
 

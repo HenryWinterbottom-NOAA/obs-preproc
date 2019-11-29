@@ -42,6 +42,7 @@ module variable_interface
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
+  public :: fv3_struct
   public :: grid_struct
   public :: hsa_spval
   public :: hsa_struct
@@ -58,6 +59,7 @@ module variable_interface
   public :: varinfo_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
+     module procedure finalize_fv3_struct
      module procedure finalize_hsa_struct
      module procedure finalize_interp_p_struct
      module procedure finalize_interp_spline_struct
@@ -69,6 +71,7 @@ module variable_interface
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
+     module procedure initialize_fv3_struct
      module procedure initialize_hsa_struct
      module procedure initialize_interp_p_struct
      module procedure initialize_interp_spline_struct
@@ -84,6 +87,8 @@ module variable_interface
   real(r_double), parameter                                             :: bufr_spval = 10.e10
   real(r_kind),   parameter                                             :: hsa_spval  = -99.0
   real(r_kind),   parameter                                             :: spval      = huge(0.0)
+  integer,        parameter                                             :: bufr_mxlv  = 200
+  integer,        parameter                                             :: bufr_mxmn  = 35
   type bufr_info_struct
      character(len=500)                                                 :: filename
      character(len=8)                                                   :: subset
@@ -106,7 +111,22 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
-  type grid_struct
+  type fv3_struct
+     real(r_kind),              dimension(:,:),             allocatable :: p
+     real(r_kind),              dimension(:,:),             allocatable :: q
+     real(r_kind),              dimension(:,:),             allocatable :: t
+     real(r_kind),              dimension(:,:),             allocatable :: u
+     real(r_kind),              dimension(:,:),             allocatable :: v
+     real(r_kind),              dimension(:),               allocatable :: lat
+     real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: psfc
+     real(r_kind),              dimension(:),               allocatable :: slmsk
+     integer                                                            :: ncoords
+     integer                                                            :: nx
+     integer                                                            :: ny
+     integer                                                            :: nz
+  end type fv3_struct             ! type fv3_struct
+  type grid_struct 
      real(r_kind)                                                       :: gclon
      real(r_kind)                                                       :: gclat
      real(r_kind)                                                       :: gcdist
@@ -239,8 +259,6 @@ module variable_interface
      integer                                                            :: ndims
      integer                                                            :: nattrs
   end type varinfo_struct         ! type varinfo_struct  
-  integer,        parameter                                             :: bufr_mxlv  = 200
-  integer,        parameter                                             :: bufr_mxmn  = 35
 
     !-----------------------------------------------------------------------
 
@@ -281,6 +299,47 @@ contains
     !=====================================================================
 
   end subroutine finalize_bufr_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_fv3_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! fv3_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN fv3_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_fv3_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(fv3_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+     if(allocated(grid%p))     deallocate(grid%p)
+     if(allocated(grid%q))     deallocate(grid%q)
+     if(allocated(grid%t))     deallocate(grid%t)
+     if(allocated(grid%u))     deallocate(grid%u)
+     if(allocated(grid%v))     deallocate(grid%v)
+     if(allocated(grid%lat))   deallocate(grid%lat)
+     if(allocated(grid%lon))   deallocate(grid%lon)
+     if(allocated(grid%psfc))  deallocate(grid%psfc)
+     if(allocated(grid%slmsk)) deallocate(grid%slmsk)
+     
+    !=====================================================================
+
+  end subroutine finalize_fv3_struct
 
   !=======================================================================
 
@@ -642,6 +701,56 @@ contains
     !=====================================================================
 
   end subroutine initialize_bufr_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_fv3_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! fv3_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN fv3_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN fv3_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_fv3_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(fv3_struct)                                                    :: grid  
+  
+    !=====================================================================
+
+    ! Define local variables
+
+    grid%ncoords = (grid%nx*grid%ny)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%p))     allocate(grid%p(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%q))     allocate(grid%q(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%t))     allocate(grid%t(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%u))     allocate(grid%u(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%v))     allocate(grid%v(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%ncoords))
+    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%ncoords))
+    if(.not. allocated(grid%psfc))  allocate(grid%psfc(grid%ncoords))
+    if(.not. allocated(grid%slmsk)) allocate(grid%slmsk(grid%ncoords))
+
+    !=====================================================================
+
+  end subroutine initialize_fv3_struct
 
   !=======================================================================
 
