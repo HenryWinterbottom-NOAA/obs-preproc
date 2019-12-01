@@ -1,7 +1,7 @@
 &share
 analdate      = '2019-09-10_01:00:00'
 datapath      = './'
-debug         = T
+debug         = F
 is_fcst_model = T
 /
 
@@ -17,6 +17,7 @@ fv3_orog_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-m
 fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
 fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
 is_fv3              = T
+sample_radius       = 50000.0
 /
 
 &sonde

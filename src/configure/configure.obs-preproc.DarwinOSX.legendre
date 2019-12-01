@@ -15,6 +15,7 @@ FCFFLAGS      = -O3 -fp-model precise -assume byterecl $(DEBUG)
 NWP_WMS_UTILS = /Users/henry.winterbottom/software/nwp-libs
 BUFR          = /Users/henry.winterbottom/software/nwp-libs
 FSON          = /Users/henry.winterbottom/software/nwp-libs
+KDTREE        = /Users/henry.winterbottom/software/nwp-libs
 NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran-4.4.5
 SLATEC        = /Users/henry.winterbottom/software/nwp-libs
 SONDELIB      = /Users/henry.winterbottom/software/nwp-libs

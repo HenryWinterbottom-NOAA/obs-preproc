@@ -42,6 +42,7 @@ module variable_interface
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
+  public :: fcstmdl_struct
   public :: fv3_struct
   public :: grid_struct
   public :: hsa_spval
@@ -59,7 +60,9 @@ module variable_interface
   public :: varinfo_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
+     module procedure finalize_fcstmdl_struct
      module procedure finalize_fv3_struct
+     module procedure finalize_grid_struct
      module procedure finalize_hsa_struct
      module procedure finalize_interp_p_struct
      module procedure finalize_interp_spline_struct
@@ -71,7 +74,9 @@ module variable_interface
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
+     module procedure initialize_fcstmdl_struct
      module procedure initialize_fv3_struct
+     module procedure initialize_grid_struct
      module procedure initialize_hsa_struct
      module procedure initialize_interp_p_struct
      module procedure initialize_interp_spline_struct
@@ -111,7 +116,20 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
-  type fv3_struct
+  type fcstmdl_struct
+     real(r_kind),              dimension(:,:),             allocatable :: p
+     real(r_kind),              dimension(:,:),             allocatable :: q
+     real(r_kind),              dimension(:,:),             allocatable :: t
+     real(r_kind),              dimension(:,:),             allocatable :: u
+     real(r_kind),              dimension(:,:),             allocatable :: v
+     real(r_kind),              dimension(:),               allocatable :: lat
+     real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: slmsk     
+     real(r_kind),              dimension(:),               allocatable :: idx
+     integer                                                            :: nobs
+     integer                                                            :: nz
+  end type fcstmdl_struct         ! type fcstmdl_struct
+  type fv3_struct 
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
      real(r_kind),              dimension(:,:),             allocatable :: t
@@ -126,11 +144,19 @@ module variable_interface
      integer                                                            :: ny
      integer                                                            :: nz
   end type fv3_struct             ! type fv3_struct
-  type grid_struct 
+  type grid_struct
+     real(r_kind),              dimension(:),               allocatable :: angle
+     real(r_kind),              dimension(:),               allocatable :: lat
+     real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: radius
+     real(r_kind),              dimension(:),               allocatable :: rotang
      real(r_kind)                                                       :: gclon
      real(r_kind)                                                       :: gclat
      real(r_kind)                                                       :: gcdist
      real(r_kind)                                                       :: gchead
+     integer                                                            :: ncoords
+     integer                                                            :: nx
+     integer                                                            :: ny
   end type grid_struct            ! type grid_struct
   type hsa_struct
      character(len=4),          dimension(:),               allocatable :: tail
@@ -304,6 +330,47 @@ contains
 
   ! SUBROUTINE: 
 
+  ! finalize_fcstmdl_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! fcstmdl_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN fcstmdl_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_fcstmdl_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%p))     deallocate(grid%p)
+    if(allocated(grid%q))     deallocate(grid%q)
+    if(allocated(grid%t))     deallocate(grid%t)
+    if(allocated(grid%u))     deallocate(grid%u)
+    if(allocated(grid%v))     deallocate(grid%v)
+    if(allocated(grid%lat))   deallocate(grid%lat)
+    if(allocated(grid%lon))   deallocate(grid%lon)
+    if(allocated(grid%slmsk)) deallocate(grid%slmsk)
+    if(allocated(grid%idx))   deallocate(grid%idx)
+    
+    !=====================================================================    
+
+  end subroutine finalize_fcstmdl_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
   ! finalize_fv3_struct.f90
 
   ! DESCRIPTION:
@@ -322,24 +389,61 @@ contains
     ! Define variables passed to routine
 
     type(fv3_struct)                                                    :: grid
+    
+    !=====================================================================
+    
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%p))     deallocate(grid%p)
+    if(allocated(grid%q))     deallocate(grid%q)
+    if(allocated(grid%t))     deallocate(grid%t)
+    if(allocated(grid%u))     deallocate(grid%u)
+    if(allocated(grid%v))     deallocate(grid%v)
+    if(allocated(grid%lat))   deallocate(grid%lat)
+    if(allocated(grid%lon))   deallocate(grid%lon)
+    if(allocated(grid%psfc))  deallocate(grid%psfc)
+    if(allocated(grid%slmsk)) deallocate(grid%slmsk)
+     
+    !=====================================================================
+
+  end subroutine finalize_fv3_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! finalize_grid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! grid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN grid_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_grid_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(grid_struct)                                                   :: grid
 
     !=====================================================================
 
     ! Deallocate memory for local variables
 
-     if(allocated(grid%p))     deallocate(grid%p)
-     if(allocated(grid%q))     deallocate(grid%q)
-     if(allocated(grid%t))     deallocate(grid%t)
-     if(allocated(grid%u))     deallocate(grid%u)
-     if(allocated(grid%v))     deallocate(grid%v)
-     if(allocated(grid%lat))   deallocate(grid%lat)
-     if(allocated(grid%lon))   deallocate(grid%lon)
-     if(allocated(grid%psfc))  deallocate(grid%psfc)
-     if(allocated(grid%slmsk)) deallocate(grid%slmsk)
-     
+    if(allocated(grid%angle))  deallocate(grid%angle)
+    if(allocated(grid%lat))    deallocate(grid%lat)
+    if(allocated(grid%lon))    deallocate(grid%lon)
+    if(allocated(grid%radius)) deallocate(grid%radius)
+    if(allocated(grid%rotang)) deallocate(grid%rotang)
+    
     !=====================================================================
 
-  end subroutine finalize_fv3_struct
+  end subroutine finalize_grid_struct   
 
   !=======================================================================
 
@@ -705,6 +809,52 @@ contains
   !=======================================================================
 
   ! SUBROUTINE: 
+
+  ! initialize_fcstmdl_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! fcstmdl_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN fcstmdl_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN fcstmdl_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_fcstmdl_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(.not. allocated(grid%p))     allocate(grid%p(grid%nobs,grid%nz))
+    if(.not. allocated(grid%q))     allocate(grid%q(grid%nobs,grid%nz))
+    if(.not. allocated(grid%t))     allocate(grid%t(grid%nobs,grid%nz))
+    if(.not. allocated(grid%u))     allocate(grid%u(grid%nobs,grid%nz))
+    if(.not. allocated(grid%v))     allocate(grid%v(grid%nobs,grid%nz))
+    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%nobs))
+    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%nobs))
+    if(.not. allocated(grid%slmsk)) allocate(grid%slmsk(grid%nobs))
+    if(.not. allocated(grid%idx))   allocate(grid%idx(grid%nobs))
+    
+    !=====================================================================    
+
+  end subroutine initialize_fcstmdl_struct
+  
+  !=======================================================================
+
+  ! SUBROUTINE: 
   
   ! initialize_fv3_struct.f90
 
@@ -752,6 +902,57 @@ contains
 
   end subroutine initialize_fv3_struct
 
+  !=======================================================================
+
+  ! SUBROUTINE: 
+
+  ! initialize_grid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! grid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN grid_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN grid_struct variable where all arrays are
+  !   allocated and initialized (when necessary).
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_grid_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(grid_struct)                                                   :: grid
+
+    !=====================================================================
+
+    ! Define local variables
+
+    if(grid%ncoords .le. 0) grid%ncoords = (grid%nx*grid%ny)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%angle))                                        &
+         & allocate(grid%angle(grid%ncoords))
+    if(.not. allocated(grid%lat))                                          &
+         & allocate(grid%lat(grid%ncoords))
+    if(.not. allocated(grid%lon))                                          &
+         & allocate(grid%lon(grid%ncoords))
+    if(.not. allocated(grid%radius))                                       &
+         & allocate(grid%radius(grid%ncoords))
+    if(.not. allocated(grid%rotang))                                       &
+         & allocate(grid%rotang(grid%ncoords))
+    
+    !=====================================================================
+
+  end subroutine initialize_grid_struct
+  
   !=======================================================================
 
   ! SUBROUTINE: 

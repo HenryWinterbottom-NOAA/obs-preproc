@@ -32,6 +32,7 @@ module namelist_interface
   ! Define associated modules and subroutines
 
   use kinds_interface
+  use variable_interface
 
   ! Define interfaces and attributes for module routines
   
@@ -205,16 +206,20 @@ module namelist_interface
   logical                                                               :: &
        & tempdrop_normalize = .false.
   logical                                                               :: &
-       & tempdrop_write_nc_skewt = .false.  
+       & tempdrop_write_nc_skewt = .false.
+  real(r_kind)                                                          :: &
+       & sample_radius = spval
+  real(r_kind)                                                          :: &
+       & tc_radius = 600000.0
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
        & is_sonde
   namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath
   namelist /fcst_mdl/ fv3_dyns_filename, fv3_orog_filename,                &
-       & fv3_static_filename, fv3_tracer_filename, is_fv3
+       & fv3_static_filename, fv3_tracer_filename, is_fv3, sample_radius
   namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
-  namelist /tc/       tcinfo_filename
+  namelist /tc/       tc_radius, tcinfo_filename
   
   !-----------------------------------------------------------------------
 
