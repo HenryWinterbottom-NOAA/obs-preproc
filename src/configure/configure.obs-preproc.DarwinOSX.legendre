@@ -8,7 +8,7 @@ MKDIR         = /bin/mkdir -p
 F90           = ifort
 F77           = ifort
 DEBUG         = -C -g -traceback 
-FCFFLAGS      = -O3 -fp-model precise -assume byterecl $(DEBUG)
+FCFFLAGS      = -O3 -fp-model precise -assume byterecl -convert big_endian $(DEBUG)
 
 # Compile time libraries.
 

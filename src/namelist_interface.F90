@@ -126,6 +126,14 @@ module namelist_interface
   !   model, for the creation of observations from forecast model
   !   fields, is from the FV3; is_fcst_model must be .true. to invoke
   !   this option.
+
+  ! * is_relocate; a FORTRAN logical value specifying whether to
+  !   relocate forecast model derived observations relative to
+  !   tropical cyclone (TC) observed geographical locations.
+
+  ! * is_rotate_winds; a FORTRAN logical value specifying whether to
+  !   rotate forecast model vector winds to an Earth-relative rotation
+  !   relative to a user specified geographical location.
   
   ! * is_sonde; a FORTRAN logical value specifying whether the
   !   observations to be formatted are derived from sondes.
@@ -141,11 +149,19 @@ module namelist_interface
   ! * mask_ocean; a FORTRAN logical value specifying whether to apply
   !   a ocean-mask for observation values (i.e., all observations
   !   occuring over ocean are masked out -- not written as a BUFR
-  !   record).  
+  !   record).
+
+  ! * sample_radius; a FORTRAN 4-byte float value specifying the
+  !   thinning radius for forecast model derived observations; units
+  !   are meters.
   
   ! * sonde_filelist; a FORTRAN character string specifying the
   !   full-path to the external file containing a list of TEMPDROP
   !   formatted sondes to be decoded.
+
+  ! * tc_radius; a FORTRAN 4-byte float value specifying the maximum
+  !   sampling radius for forecast model derived observations relative
+  !   to tropical cyclone (TC) observed positions.
 
   ! * tcinfo_filename; a FORTRAN character string specifying the path
   !   to the ASCII formatted file containing the observed and model
@@ -208,6 +224,10 @@ module namelist_interface
   logical                                                               :: &
        & is_fv3 = .false.
   logical                                                               :: &
+       & is_relocate = .false.
+  logical                                                               :: &
+       & is_rotate_winds = .false.
+  logical                                                               :: &
        & is_sonde = .false.
   logical                                                               :: &
        & is_sonde_tempdrop = .false.
@@ -230,11 +250,12 @@ module namelist_interface
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
        & mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
-       & fv3_static_filename, fv3_tracer_filename, is_fv3, sample_radius
+       & fv3_static_filename, fv3_tracer_filename, is_fv3,                 &
+       & is_rotate_winds, sample_radius
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
-  namelist /tc/         tc_radius, tcinfo_filename
+  namelist /tc/         is_relocate, tc_radius, tcinfo_filename
   
   !-----------------------------------------------------------------------
 
@@ -304,6 +325,7 @@ contains
     write(6,*) 'DATAPATH                      = ',                         &
          & trim(adjustl(datapath))
     write(6,*) 'DEBUG                         = ', debug
+    write(6,*) 'IS_FCST_MODEL                 = ', is_fcst_model
     write(6,*) 'IS_SONDE                      = ', is_sonde
     write(6,*) '/'
     write(6,*) '&BUFRIO'
@@ -313,6 +335,21 @@ contains
          & trim(adjustl(bufr_info_filepath))
     write(6,*) 'BUFR_TBLPATH                  = ',                         &
          & trim(adjustl(bufr_tblpath))
+    write(6,*) 'MASK_LAND                     = ', mask_land
+    write(6,*) 'MASK_OCEAN                    = ', mask_ocean    
+    write(6,*) '/'
+    write(6,*) '&FCST_MDL'
+    write(6,*) 'FV3_DYNS_FILENAME             = ',                         &
+         & trim(adjustl(fv3_dyns_filename))
+    write(6,*) 'FV3_OROG_FILENAME             = ',                         &
+         & trim(adjustl(fv3_orog_filename))
+    write(6,*) 'FV3_STATIC_FILENAME           = ',                         &
+         & trim(adjustl(fv3_static_filename))
+    write(6,*) 'FV3_TRACER_FILENAME           = ',                         &
+         & trim(adjustl(fv3_tracer_filename))
+    write(6,*) 'IS_FV3                        = ', is_fv3
+    write(6,*) 'IS_ROTATE_WINDS               = ', is_rotate_winds
+    write(6,*) 'SAMPLE_RADIUS                 = ', sample_radius
     write(6,*) '/'
     write(6,*) '&SONDE'
     write(6,*) 'IS_SONDE_TEMPDROP             = ', is_sonde_tempdrop
@@ -326,6 +363,12 @@ contains
     write(6,*) 'TEMPDROP_WRITE_NC_SKEWT       = ',                         &
          & tempdrop_write_nc_skewt
     write(6,*) '/'
+    write(6,*) '&TC'    
+    write(6,*) 'IS_RELOCATE                   = ', is_relocate
+    write(6,*) 'TC_RADIUS                     = ', tc_radius
+    write(6,*) 'TCINFO_FILENAME               = ',                         &
+         & trim(adjustl(tcinfo_filename))
+    write(6,*) '/'    
 500 format('NAMELISTPARAMS: ', a, ' not found in the current working ',    &
          & 'directory. ABORTING!!!!')
     

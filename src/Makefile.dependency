@@ -45,6 +45,7 @@ fileio_interface.o: fileio_interface.F90 \
 
 forecast_model_interface.o: forecast_model_interface.F90 \
 			    bufrio_interface.o \
+			    constants_interface.o \
 			    fileio_interface.o \
 			    grid_methods_interface.o \
 			    kinds_interface.o \

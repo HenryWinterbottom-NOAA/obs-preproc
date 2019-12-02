@@ -120,8 +120,6 @@ module variable_interface
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
   type fcstmdl_struct
-     logical,                   dimension(:),               allocatable :: land
-     logical,                   dimension(:),               allocatable :: ocean
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
      real(r_kind),              dimension(:,:),             allocatable :: t
@@ -368,8 +366,6 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(allocated(grid%land))  deallocate(grid%land)
-    if(allocated(grid%ocean)) deallocate(grid%ocean)
     if(allocated(grid%p))     deallocate(grid%p)
     if(allocated(grid%q))     deallocate(grid%q)
     if(allocated(grid%t))     deallocate(grid%t)
@@ -890,8 +886,6 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(.not. allocated(grid%land))  allocate(grid%land(grid%nobs))
-    if(.not. allocated(grid%ocean)) allocate(grid%ocean(grid%nobs))
     if(.not. allocated(grid%p))     allocate(grid%p(grid%nobs,grid%nz))
     if(.not. allocated(grid%q))     allocate(grid%q(grid%nobs,grid%nz))
     if(.not. allocated(grid%t))     allocate(grid%t(grid%nobs,grid%nz))

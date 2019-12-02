@@ -32,6 +32,7 @@ module forecast_model_interface
   ! Define associated modules and subroutines
 
   use bufrio_interface
+  use constants_interface
   use fileio_interface
   use grid_methods_interface
   use kinds_interface
@@ -48,6 +49,9 @@ module forecast_model_interface
   interface observation_assignments
      module procedure fv3_observations
   end interface observation_assignments
+  interface rotate_winds
+     module procedure fv3_rotate_winds
+  end interface rotate_winds
   interface write_fcstmdl_bufr
      module procedure fv3_bufr
   end interface write_fcstmdl_bufr
@@ -64,7 +68,12 @@ contains
 
   ! DESCRIPTION:
 
-  !
+  ! This subroutine is the driver-level subroutine to ingest the
+  ! necessary variable fields from the FV3 model forecast files and
+  ! project the observations into a reference frame relative to the
+  ! available geographical locations specified by the user; the BUFR
+  ! observations are derived and written to an external user specified
+  ! filepath.
 
   !-----------------------------------------------------------------------
 
@@ -79,7 +88,7 @@ contains
     
     ! Define counting variables
 
-    integer                                                             :: i, j
+    integer                                                             :: i
 
     !=====================================================================
 
@@ -118,6 +127,11 @@ contains
        
     end do ! do i = 1, size(tcinfo)
 
+    ! Deallocate memory for local variables
+
+    if(allocated(tcinfo)) deallocate(tcinfo)
+    call variable_interface_cleanup_struct(grid)    
+
     ! Define local variables
 
     call write_fcstmdl_bufr(fcstmdl,fv3)
@@ -125,9 +139,7 @@ contains
     ! Deallocate memory for local variables
 
     if(allocated(fcstmdl)) deallocate(fcstmdl)
-    if(allocated(tcinfo))  deallocate(tcinfo)
     call variable_interface_cleanup_struct(fv3)
-    call variable_interface_cleanup_struct(grid)
     
     !=====================================================================
 
@@ -244,15 +256,18 @@ contains
 
   ! DESCRIPTION:
 
-  !
+  ! This subroutine writes the FV3 forecast model derived observations
+  ! to an external user specified BUFR file.
 
   ! INPUT VARIABLES:
 
-  !
+  ! * fcstmdl; an array of FORTRAN fcstmdl_struct variables which has
+  !   been populated with the contents from the FORTRAN fv3_struct
+  !   variable relative to the respective geographical locations.
 
-  ! OUTPUT VARIABLES:
-
-  !
+  ! * fv3; a FORTRAN fv3_struct variable containing with variable
+  !   arrays which have been populated from the contents of the
+  !   external FV3 netcdf files.
 
   !-----------------------------------------------------------------------
 
@@ -294,24 +309,52 @@ contains
     call bufrio_interface_idate(analdate,bufr)
     call bufrio_interface_open(lbufr_filepath,bufr_tblpath,bufr,.false.,   &
          & .false.,.true.)    
-    dst_grid%ncoords   = fv3%ncoords
-    call variable_interface_setup_struct(dst_grid)
-    dst_grid%lat       = fv3%lat
-    dst_grid%lon       = fv3%lon
     nobs               = 0
-    
+
+    ! Check local variable and proceed accordingly
+
+    if(mask_ocean .or. mask_land) then
+
+       ! Define local variables
+       
+       dst_grid%ncoords = fv3%ncoords
+       call variable_interface_setup_struct(dst_grid)
+       dst_grid%lat     = fv3%lat
+       dst_grid%lon     = fv3%lon
+
+    end if ! if(mask_ocean .or. mask_land)
+       
     ! Loop through local variable
 
     do i = 1, size(fcstmdl)
-
-
-       ! NEED TO HANDLE WHEN MASKING BOTH OCEAN AND LAND
-       
-    
+           
        ! Check local variable and proceed accordingly
 
-       if(mask_ocean .or. mask_land) then
+       if((.not. mask_ocean) .and. (.not. mask_land)) then
 
+          ! Loop through local variable
+
+          do j = 1, fcstmdl(i)%nobs
+             
+             ! Loop through local variable
+             
+             do k = 1, fcstmdl(i)%nz
+                
+                ! Define local variables
+
+                nobs = nobs + 1
+                call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,nobs)
+
+             end do ! do k = 1, fcstmdl(i)%nz
+
+          end do ! do j = 1, fcstmdl(i)%nobs
+
+       end if ! if((.not. mask_ocean) .and. (.not. mask_land))
+
+       ! Check local variable and proceed accordingly
+       
+       if(mask_ocean .or. mask_land) then
+          
           ! Define local variables
 
           src_grid%ncoords = fcstmdl(i)%nobs
@@ -346,7 +389,7 @@ contains
                    ! Check local variable and proceed accordingly
 
                    if(mask_ocean .and. (fv3%slmsk(kdtree%idx(j,1)) .ge.    &
-                        & 1.0)) then
+                        & 1.0) .and. (.not. mask_land)) then
 
                       ! Define local variables
 
@@ -360,7 +403,7 @@ contains
                    ! Check local variable and proceed accordingly
 
                    if(mask_land .and. (fv3%slmsk(kdtree%idx(j,1)) .le.     &
-                        & 0.0)) then
+                        & 0.0) .and. (.not. mask_ocean)) then
 
                       ! Define local variables
 
@@ -377,26 +420,7 @@ contains
              end do ! do k = 1, fcstmdl(i)%nz
                 
           end do ! do j = 1, fcstmdl(i)%nobs
-
-       else   ! if(mask_ocean .or. mask_land)
-
-          ! Loop through local variable
-          
-          do j = 1, fcstmdl(i)%nobs
-             
-             ! Loop through local variable
-             
-             do k = 1, fcstmdl(i)%nz
-
-                ! Define local variables
-
-                nobs = nobs + 1
-                call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,nobs)
-                
-             end do ! do k = 1, fcstmdl(i)%nz
-             
-          end do ! do j = 1, fcstmdl(i)%nobs                
-          
+                       
        end if ! if(mask_ocean .or. mask_land)
           
        ! Deallocate memory for local variables
@@ -464,6 +488,7 @@ contains
 
     ! Define variables computed within routine
 
+    type(fv3_struct)                                                    :: fv3_local    
     real(r_kind)                                                        :: dlat
     real(r_kind)                                                        :: dlon
     
@@ -473,15 +498,33 @@ contains
     
     !=====================================================================  
 
-    ! Compute local variables
+    ! Check local variable and proceed accordingly
 
-    dlat = tcinfo%obs_clat - tcinfo%mdl_clat
-    dlon = tcinfo%obs_clon - tcinfo%mdl_clon
+    if(is_relocate) then
+    
+       ! Compute local variables
+
+       dlat = tcinfo%obs_clat - tcinfo%mdl_clat
+       dlon = tcinfo%obs_clon - tcinfo%mdl_clon
+
+    else  ! if(is_relocate)
+
+       ! Define local variables
+
+       dlat = 0.0
+       dlon = 0.0
+
+    end if ! if(is_relocate)
 
     ! Define local variables
 
-    fcstmdl%land  = .false.
-    fcstmdl%ocean = .false.
+    fv3_local    = fv3
+    fcstmdl%clat = tcinfo%obs_clat
+    fcstmdl%clon = tcinfo%obs_clon
+
+    ! Check local variable and proceed accordingly
+
+    if(is_rotate_winds) call rotate_winds(fv3_local,fcstmdl)
     
     ! Loop through local variable
 
@@ -489,30 +532,112 @@ contains
 
        ! Define local variables
 
-       fcstmdl%p(i,:)   = fv3%p(fcstmdl%idx(i),:)
-       fcstmdl%q(i,:)   = fv3%q(fcstmdl%idx(i),:)
-       fcstmdl%t(i,:)   = fv3%t(fcstmdl%idx(i),:)
-       fcstmdl%u(i,:)   = fv3%u(fcstmdl%idx(i),:)
-       fcstmdl%v(i,:)   = fv3%v(fcstmdl%idx(i),:)
-       fcstmdl%lat(i)   = fv3%lat(fcstmdl%idx(i)) + dlat
-       fcstmdl%lon(i)   = fv3%lon(fcstmdl%idx(i)) + dlon
-       fcstmdl%slmsk(i) = fv3%slmsk(fcstmdl%idx(i))
-
-       ! Check local variable and proceed accordingly
-
-       if(fcstmdl%slmsk(i) .le. 0.0) fcstmdl%ocean(i) = .true.
-       if(fcstmdl%slmsk(i) .ge. 1.0) fcstmdl%land(i)  = .true.
+       fcstmdl%p(i,:)   = fv3_local%p(fcstmdl%idx(i),:)
+       fcstmdl%q(i,:)   = fv3_local%q(fcstmdl%idx(i),:)
+       fcstmdl%t(i,:)   = fv3_local%t(fcstmdl%idx(i),:)
+       fcstmdl%u(i,:)   = fv3_local%u(fcstmdl%idx(i),:)
+       fcstmdl%v(i,:)   = fv3_local%v(fcstmdl%idx(i),:)
+       fcstmdl%lat(i)   = fv3_local%lat(fcstmdl%idx(i)) + dlat
+       fcstmdl%lon(i)   = fv3_local%lon(fcstmdl%idx(i)) + dlon
+       fcstmdl%slmsk(i) = fv3_local%slmsk(fcstmdl%idx(i))
        
     end do ! do i = 1, fcstmdl%nobs
 
-    ! Define local variables
+    ! Deallocate memory for local variables
 
-    fcstmdl%clat = tcinfo%obs_clat
-    fcstmdl%clon = tcinfo%obs_clon
-       
+    call variable_interface_cleanup_struct(fv3_local)
+           
     !=====================================================================  
     
   end subroutine fv3_observations
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! fv3_rotate_winds.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine rotates the FV3 forecast model vector winds to an
+  ! Earth-relative rotation relative to a user specified fixed
+  ! geographical location.
+
+  ! INPUT VARIABLES:
+
+  ! * fv3; a FORTRAN fv3_struct variable containing (at minimum) the
+  !   model grid projection information.
+
+  ! * fcstmdl; a FORTRAN fcstmdl_struct variable containing the
+  !   respective forecast model analysis variables.
+
+  ! OUTPUT VARIABLES:
+
+  ! * fcstmdl; a FORTRAN fcstmdl_struct variable containing the
+  !   respective forecast model winds rotated to an Earth-relative
+  !   coordinate system.
+
+  !-----------------------------------------------------------------------
+
+  subroutine fv3_rotate_winds(fv3,fcstmdl)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: fcstmdl
+    type(fv3_struct)                                                    :: fv3
+
+    ! Define variables computed within routine
+
+    type(grid_struct)                                                   :: grid
+    real(r_kind),               dimension(:),               allocatable :: u_er
+    real(r_kind),               dimension(:),               allocatable :: v_er
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(u_er)) allocate(u_er(fv3%ncoords))
+    if(.not. allocated(v_er)) allocate(v_er(fv3%ncoords))
+
+    ! Define local variables
+
+    grid%ncoords = fv3%ncoords
+    call variable_interface_setup_struct(grid)
+    grid%gclat   = fcstmdl%clat
+    grid%gclon   = fcstmdl%clon
+    grid%lat     = fv3%lat
+    grid%lon     = fv3%lon
+
+    ! Compute local variables
+
+    call grid_methods_polarcoords(grid)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+       
+       ! Compute local variables
+       
+       u_er = fv3%u(:,i)*cos(grid%rotang*deg2rad) - fv3%v(:,i)*            &
+            & sin(grid%rotang*deg2rad)
+       v_er = fv3%v(:,i)*cos(grid%rotang*deg2rad) + fv3%u(:,i)*            &
+            & sin(grid%rotang*deg2rad)
+       
+    end do ! do i = 1, fv3%nz
+
+    ! Deallocate memory for local variables
+
+    if(allocated(u_er)) deallocate(u_er)
+    if(allocated(v_er)) deallocate(v_er)
+    call variable_interface_cleanup_struct(grid)
+
+    !=====================================================================
+
+  end subroutine fv3_rotate_winds  
   
   !=======================================================================
 
