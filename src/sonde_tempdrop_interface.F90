@@ -445,15 +445,15 @@ contains
 
           ! Define local variables
 
-          grid%lat = plat
-          grid%lon = -1.0*plon
+          grid%gclat = plat
+          grid%gclon = -1.0*plon
 
           ! Compute local variables
 
           dtime     = ptime - hsa_interp%time(i)
-          grid%head = 270.0 + atan2(hsa_interp%v(i),hsa_interp%u(i))*      &
+          grid%gchead = 270.0 + atan2(hsa_interp%v(i),hsa_interp%u(i))*    &
                & rad2deg
-          grid%dist = sqrt(hsa_interp%u(i)**2.0 + hsa_interp%v(i)**2.0)*   &
+          grid%gcdist = sqrt(hsa_interp%u(i)**2.0 + hsa_interp%v(i)**2.0)* &
                & dtime
 
           ! Compute local variables
@@ -462,8 +462,8 @@ contains
 
           ! Define local variables
 
-          hsa_interp%lon(i) = -1.0*grid%lon
-          hsa_interp%lat(i) = grid%lat
+          hsa_interp%lon(i) = -1.0*grid%gclon
+          hsa_interp%lat(i) = grid%gclat
           plat              = hsa_interp%lat(i)
           plon              = hsa_interp%lon(i)
           ptime             = hsa_interp%time(i)

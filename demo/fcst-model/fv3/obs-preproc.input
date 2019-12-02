@@ -1,0 +1,32 @@
+&share
+analdate      = '2017-09-10_01:00:00'
+datapath      = './'
+debug         = F
+is_fcst_model = T
+/
+
+&bufrio
+bufr_filepath      = './prepbufr.fv3'
+bufr_info_filepath = '../demo/fcst-model/bufr_info.json'
+bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
+mask_land          = T
+mask_ocean         = F
+/
+
+&fcst_mdl
+fv3_dyns_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_core.res.nest02.tile7.nc'
+fv3_orog_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/C96_oro_data.tile7.nc'
+fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
+fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
+is_fv3              = T
+is_rotate_winds     = T
+sample_radius       = 50000.0
+/
+
+&sonde
+/
+
+&tc
+is_relocate     = T
+tcinfo_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/obs-preproc.tcv.output'
+/

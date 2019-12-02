@@ -45,8 +45,10 @@ module fileio_interface
   public :: fileio_interface_write
   interface fileio_interface_read
      module procedure read_bufr_info
+     module procedure read_fv3
      module procedure read_hsa
      module procedure read_sonde_filenames
+     module procedure read_tcinfo
   end interface fileio_interface_read
   interface fileio_interface_varinfo
      module procedure varinfo_sonde_meteo
@@ -101,6 +103,244 @@ contains
 
   end subroutine read_bufr_info  
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_fv3.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine reads Network Common Data Format (netcdf) files
+  ! produced by the Finite Volume Cubed Sphere (FV3) regional model
+  ! grid configuration and defines the variables within the FORTRAN
+  ! fv3_struct variable.
+
+  ! NOTE: The FV3 3-dimensional variables are ordered from the bottom
+  ! to top (e.g., the top-most level within the array is the surface);
+  ! this subroutine reorders the 3-dimensional variables such that the
+  ! surface is the first level within the array.
+
+  ! INPUT VARIABLES:
+
+  ! * fv3; a FORTRAN fv3_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * fv3; a FORTRAN fv3_struct variable containing both the contents
+  !   for the ingested FV3 netcdf files and the variables computed
+  !   from the respective ingested variables.
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_fv3(fv3)
+
+    ! Define variables passed to routine
+
+    type(fv3_struct)                                                    :: fv3
+
+    ! Define variables computed within routine
+
+    character(len=100)                                                  :: dimname
+    character(len=100)                                                  :: varname
+    real(r_kind),               dimension(:,:,:),           allocatable :: nc_real_3d
+    real(r_kind),               dimension(:,:),             allocatable :: nc_real_2d
+    real(r_kind),               dimension(:),               allocatable :: ak
+    real(r_kind),               dimension(:),               allocatable :: bk
+    integer                                                             :: nx
+    integer                                                             :: ny
+    integer                                                             :: nz
+    integer                                                             :: zcoord
+    
+    ! Define counting variables
+
+    integer                                                             :: i
+    
+    !=====================================================================    
+
+    ! Define local variables
+    
+    dimname = 'lon'
+    call netcdf_interface_getdim(fv3_orog_filename,dimname,nx)
+    fv3%nx  = nx
+    dimname = 'lat'
+    call netcdf_interface_getdim(fv3_orog_filename,dimname,ny)
+    fv3%ny  = ny
+    dimname = 'phalf'
+    call netcdf_interface_getdim(fv3_static_filename,dimname,nz)
+    fv3%nz  = (nz - 1)
+    call variable_interface_setup_struct(fv3)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(nc_real_3d)) allocate(nc_real_3d(nx,ny,fv3%nz))
+    if(.not. allocated(nc_real_2d)) allocate(nc_real_2d(nx,ny))
+    if(.not. allocated(ak))         allocate(ak(fv3%nz))
+    if(.not. allocated(bk))         allocate(bk(fv3%nz))   
+    
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_tracer_filename))
+    varname = 'sphum'
+    call netcdf_interface_getvar(fv3_tracer_filename,varname,nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord          = (fv3%nz - i) + 1
+       fv3%q(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%q(:,zcoord)))
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%q(:,zcoord)), maxval(fv3%q(:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename))
+    varname = 'T'
+    call netcdf_interface_getvar(fv3_dyns_filename,varname,nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord          = (fv3%nz - i) + 1       
+       fv3%t(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%t(:,zcoord)))
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%t(:,zcoord)), maxval(fv3%t(:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename))
+    varname = 'ua'
+    call netcdf_interface_getvar(fv3_dyns_filename,varname,nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord          = (fv3%nz - i) + 1
+       fv3%u(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%u(:,zcoord)))
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%u(:,zcoord)), maxval(fv3%u(:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename))
+    varname = 'va'
+    call netcdf_interface_getvar(fv3_dyns_filename,varname,nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord          = (fv3%nz - i) + 1
+       fv3%v(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%v(:,zcoord)))
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%v(:,zcoord)), maxval(fv3%v(:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename))
+    varname  = 'delp'
+    call netcdf_interface_getvar(fv3_dyns_filename,varname,nc_real_3d)
+    fv3%psfc = 0.0
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       fv3%psfc = fv3%psfc + reshape(nc_real_3d(:,:,i),shape(fv3%psfc))
+
+    end do ! do i = 1, fv3%nz    
+
+    ! Define local variables
+
+    if(debug) write(6,502) 'psfc', minval(fv3%psfc), maxval(fv3%psfc)
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_static_filename))
+    varname = 'hyam'
+    call netcdf_interface_getvar(fv3_static_filename,varname,ak)
+    varname = 'hybm'
+    call netcdf_interface_getvar(fv3_static_filename,varname,bk)
+
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord = (fv3%nz - i) + 1
+    
+       ! Compute local variables
+
+       fv3%p(:,zcoord) = ak(i)*1.0e5 + bk(i)*fv3%psfc(:)       
+       if(debug) write(6,501), 'P', zcoord, minval(fv3%p(:,zcoord)),       &
+            & maxval(fv3%p(:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_orog_filename))
+    varname   = 'geolat'
+    call netcdf_interface_getvar(fv3_orog_filename,varname,nc_real_2d)
+    fv3%lat   = reshape(nc_real_2d,shape(fv3%lat))
+    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%lat),        &
+         & maxval(fv3%lat)
+    if(debug) write(6,500) trim(adjustl(fv3_orog_filename))
+    varname   = 'geolon'
+    call netcdf_interface_getvar(fv3_orog_filename,varname,nc_real_2d)
+    fv3%lon   = reshape(nc_real_2d,shape(fv3%lon))
+    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%lon),        &
+         & maxval(fv3%lon)
+    if(debug) write(6,500) trim(adjustl(fv3_orog_filename))
+    varname   = 'slmsk'
+    call netcdf_interface_getvar(fv3_orog_filename,varname,nc_real_2d)
+    fv3%slmsk = reshape(nc_real_2d,shape(fv3%slmsk))
+    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%slmsk),      &
+         & maxval(fv3%slmsk)
+    
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+    if(allocated(nc_real_2d)) deallocate(nc_real_2d)
+    if(allocated(ak))         deallocate(ak)
+    if(allocated(bk))         deallocate(bk)
+
+    ! Define local variables
+
+500 format(/,'READ_FV3: Reading file ',a,'.',/)
+501 format('READ_FV3: Variable/Level/Min/Max: ',a,1x,i3.3,2(1x,f13.5))
+502 format('READ_FV3: Variable/Min/Max: ',a,2(1x,f13.5))
+    
+    !=====================================================================
+    
+  end subroutine read_fv3
+  
   !=======================================================================
 
   ! SUBROUTINE:
@@ -250,6 +490,118 @@ contains
     !=====================================================================
 
   end subroutine read_sonde_filenames
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_tcinfo.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine ingests an external file containing tropical
+  ! cyclone information required to generate synthetic, relocated
+  ! observations.
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the path to the
+  !   TC information file.
+
+  ! * tcinfo; a FORTRAN tcinfo_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * tcinfo; a FORTRAN tcinfo_struct variable now containing the
+  !   tropical cyclone attributes retrieved from the user specified
+  !   file.
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_tcinfo(filename,tcinfo)
+
+    ! Define variables passed to routine
+
+    type(tcinfo_struct),        dimension(:),               allocatable :: tcinfo
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=1)                                                    :: dummy
+    integer                                                             :: ntcs
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Define local variables
+
+    ntcs = 0
+    open(99,file=trim(adjustl(filename)),form='formatted')
+1000 read(99,*,end=1001) dummy
+    ntcs = ntcs + 1
+    goto 1000
+1001 continue
+    close(99)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(tcinfo)) allocate(tcinfo(ntcs))
+
+    ! Define local variables
+
+    open(99,file=trim(adjustl(filename)),form='formatted')
+
+    ! Loop through local variable
+
+    do i = 1, ntcs
+
+       ! Define local variables
+
+       read(99,*) tcinfo(i)%id, tcinfo(i)%obs_clat, tcinfo(i)%mdl_clat,    &
+            & tcinfo(i)%obs_clon, tcinfo(i)%mdl_clon, tcinfo(i)%obs_pcen,  &
+            & tcinfo(i)%mdl_pcen, tcinfo(i)%obs_vmax, tcinfo(i)%mdl_vmax
+
+       ! Check local variable and proceed accordingly
+       
+       if(debug) then
+
+          ! Define local variables
+
+          write(6,'(/)')
+          write(6,501)
+          write(6,500) tcinfo(i)%id, tcinfo(i)%obs_clat,                   &
+               & tcinfo(i)%mdl_clat, tcinfo(i)%obs_clon,                   &
+               & tcinfo(i)%mdl_clon, tcinfo(i)%obs_pcen,                   &
+               & tcinfo(i)%mdl_pcen, tcinfo(i)%obs_vmax,                   &
+               & tcinfo(i)%mdl_vmax 
+          
+       end if ! if(debug)
+
+       ! Check local variable and proceed accordingly
+
+       if(is_fv3) then
+
+          ! Define local variables
+
+          tcinfo(i)%mdl_clon = tcinfo(i)%mdl_clon + 360.0
+          tcinfo(i)%obs_clon = tcinfo(i)%obs_clon + 360.0
+
+       end if ! if(is_fv3)
+
+    end do ! do i = 1, ntcs
+
+    ! Define local variables
+
+    close(99)
+500 format(a3,8(1x,f13.5))
+501 format('READ_TCINFO: Read the following TC information record:')
+
+    !=====================================================================
+
+  end subroutine read_tcinfo
 
   !=======================================================================
 
