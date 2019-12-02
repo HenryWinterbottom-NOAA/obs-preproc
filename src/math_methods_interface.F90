@@ -36,6 +36,7 @@ module math_methods_interface
   
   implicit none
   private
+  public :: math_methods_kdtree_nn
   public :: math_methods_kdtree_r2
   public :: math_methods_llp_interp
   public :: math_methods_normalize_values
@@ -87,6 +88,127 @@ contains
     !=====================================================================
 
   end subroutine init_stats
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! math_methods_kdtree_nn.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine implements a KD-tree search algorithm to locate
+  ! the N-nearest neighbor locations for a user specified geographical
+  ! location.
+
+  ! REFERENCES:
+
+  ! Kennel, M. B., 2004: KDTREE2: Fortran 95 and C++ software to
+  ! efficiently search for near neighbors in a multi-dimensional
+  ! Euclidean space. 
+
+  ! http://arxiv.org/PScache/phvsics/pdf/0408/0408067.pdf.
+
+  ! INPUT VARIABLES:
+  
+  ! * src_grid; a FORTRAN grid_struct variable containing the
+  !   Euclidean space geographical locations within which to find
+  !   nearest-neighbors; geographical locations (e.g., latitudes and
+  !   longitudes) are assumed to have units of degrees.
+
+  ! * dst_grid; a FORTRAN grid_struct variable containing the
+  !   geographical locations for which to find the N-nearest neighbor
+  !   locations; geographical locations (e.g., latitudes and
+  !   longitudes) are assumed to have units of degrees.
+
+  ! * kdtree; a FORTRAN kdtree_struct variable containing (at minimum)
+  !   the number of coordinate values (the ncoords attribute should be
+  !   equal to the dst_grid variable ncoords attribute) and the number
+  !   of nearest-neighbors to seek (the nn attribute should be less
+  !   than or equal to the src_grid variable ncoords attribute).
+
+  ! OUTPUT VARIABLES:
+
+  ! * kdtree; a FORTRAN kdtree_struct variable containing the
+  !   N-nearest neighbor R^2 distances and src_grid variable
+  !   coordinate values (r2dist and idx attributes, respectively); the
+  !   units for the r2dist attribute are meters squared.
+
+  !-----------------------------------------------------------------------
+
+  subroutine math_methods_kdtree_nn(src_grid,dst_grid,kdtree)
+
+    ! Define variables passed to routine
+
+    type(grid_struct)                                                   :: dst_grid
+    type(grid_struct)                                                   :: src_grid
+    type(kdtree_struct)                                                 :: kdtree
+
+    ! Define variables computed within routine
+
+    type(kdtree2), pointer                                              :: kdtree2
+    type(kdtree2_result)                                                :: sresults(kdtree%nn)
+    real(r_kind),               dimension(:,:),             allocatable :: src_grdloc
+    real(r_kind)                                                        :: dst_grdloc(3)
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(src_grdloc))                                        &
+         & allocate(src_grdloc(3,src_grid%ncoords))
+
+    ! Loop through local variables
+
+    do i = 1, src_grid%ncoords
+
+       ! Compute local variables
+
+       src_grdloc(1,i) = rearth_equator*cos(src_grid%lat(i)*deg2rad)*      &
+            & cos(src_grid%lon(i)*deg2rad)
+       src_grdloc(2,i) = rearth_equator*cos(src_grid%lat(i)*deg2rad)*      &
+            & sin(src_grid%lon(i)*deg2rad)
+       src_grdloc(3,i) = rearth_equator*sin(src_grid%lat(i)*deg2rad)
+
+    end do ! do i = 1, src_grid%ncoords
+
+    ! Compute local variables
+
+    kdtree2 => kdtree2_create(src_grdloc,sort=.true.,rearrange=.true.)
+
+    ! Loop through local variables
+
+    do i = 1, dst_grid%ncoords
+
+       ! Compute local variables
+
+       dst_grdloc(1) = rearth_equator*cos(dst_grid%lat(i)*deg2rad)*        &
+            & cos(dst_grid%lon(i)*deg2rad)
+       dst_grdloc(2) = rearth_equator*cos(dst_grid%lat(i)*deg2rad)*        &
+            & sin(dst_grid%lon(i)*deg2rad)
+       dst_grdloc(3) = rearth_equator*sin(dst_grid%lat(i)*deg2rad)
+       
+       ! Define local variables
+
+       call kdtree2_n_nearest(tp=kdtree2,qv=dst_grdloc,nn=kdtree%nn,       &
+            & results=sresults)
+       kdtree%r2dist(i,1:kdtree%nn) = sresults(1:kdtree%nn)%dis
+       kdtree%idx(i,1:kdtree%nn)    = sresults(1:kdtree%nn)%idx
+
+    end do ! do i = 1, dst_grid%ncoords
+
+    ! Deallocate memory for local variables
+
+    call kdtree2_destroy(kdtree2)
+    if(allocated(src_grdloc)) deallocate(src_grdloc)
+
+    !=====================================================================
+
+  end subroutine math_methods_kdtree_nn  
 
   !=======================================================================
 

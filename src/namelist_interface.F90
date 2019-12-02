@@ -132,6 +132,16 @@ module namelist_interface
 
   ! * is_sonde_tempdrop; a FORTRAN logical value specifying whether
   !   the sonde observations are derived from TEMP-DROP messages.
+
+  ! * mask_land; a FORTRAN logical value specifying whether to apply a
+  !   land-mask for observation values (i.e., all observations
+  !   occuring over non-zero topography are masked out -- not written
+  !   as a BUFR record).
+
+  ! * mask_ocean; a FORTRAN logical value specifying whether to apply
+  !   a ocean-mask for observation values (i.e., all observations
+  !   occuring over ocean are masked out -- not written as a BUFR
+  !   record).  
   
   ! * sonde_filelist; a FORTRAN character string specifying the
   !   full-path to the external file containing a list of TEMPDROP
@@ -162,7 +172,7 @@ module namelist_interface
   !   Administration (NOAA) Atlantic Oceanographic and Meteorological
   !   Laboratory (AOML) Hurricane Research Division (HRD) spline
   !   analysis (HSA) values; tempdrop_compute_drift must be true.
-  
+ 
   !-----------------------------------------------------------------------
 
   ! Define local variables
@@ -202,6 +212,10 @@ module namelist_interface
   logical                                                               :: &
        & is_sonde_tempdrop = .false.
   logical                                                               :: &
+       & mask_land = .false.
+  logical                                                               :: &
+       & mask_ocean = .false.
+  logical                                                               :: &
        & tempdrop_compute_drift = .false.
   logical                                                               :: &
        & tempdrop_normalize = .false.
@@ -213,13 +227,14 @@ module namelist_interface
        & tc_radius = 600000.0
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
        & is_sonde
-  namelist /bufrio/   bufr_filepath, bufr_info_filepath, bufr_tblpath
-  namelist /fcst_mdl/ fv3_dyns_filename, fv3_orog_filename,                &
+  namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
+       & mask_land, mask_ocean
+  namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
        & fv3_static_filename, fv3_tracer_filename, is_fv3, sample_radius
-  namelist /sonde/    is_sonde_tempdrop, sonde_filelist,                   &
+  namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
-  namelist /tc/       tc_radius, tcinfo_filename
+  namelist /tc/         tc_radius, tcinfo_filename
   
   !-----------------------------------------------------------------------
 

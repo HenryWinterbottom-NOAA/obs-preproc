@@ -31,11 +31,13 @@ module forecast_model_interface
   
   ! Define associated modules and subroutines
 
+  use bufrio_interface
   use fileio_interface
   use grid_methods_interface
   use kinds_interface
   use math_methods_interface
   use namelist_interface
+  use time_methods_interface
   use variable_interface
 
   ! Define interfaces and attributes for module routines
@@ -46,6 +48,9 @@ module forecast_model_interface
   interface observation_assignments
      module procedure fv3_observations
   end interface observation_assignments
+  interface write_fcstmdl_bufr
+     module procedure fv3_bufr
+  end interface write_fcstmdl_bufr
   
   !-----------------------------------------------------------------------
 
@@ -109,12 +114,13 @@ contains
 
        call grid_methods_polarcoords(grid)
        call observation_locations(grid,fcstmdl(i))
-       call observation_assignments(fcstmdl(i),fv3)
-
-       
-       call variable_interface_cleanup_struct(fcstmdl(i)) ! for now
+       call observation_assignments(fcstmdl(i),tcinfo(i),fv3)
        
     end do ! do i = 1, size(tcinfo)
+
+    ! Define local variables
+
+    call write_fcstmdl_bufr(fcstmdl,fv3)
     
     ! Deallocate memory for local variables
 
@@ -131,19 +137,311 @@ contains
 
   ! SUBROUTINE:
 
+  ! bufr_record.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine constructs a BUFR record and writes the respective
+  ! record to the external BUFR file.
+
+  ! INPUT VARIABLES:
+
+  ! * fcstmdl; a FORTRAN fcstmdl_struct variable containing the
+  !   observation values; it is assumed that the wind variables have
+  !   already been rotated from model space to observation space.
+
+  ! * idx; a FORTRAN integer value specifying the horizontal
+  !   coordinate value within the respective FORTRAN fcstmdl_struct
+  !   variable arrays.
+
+  ! * kdx; a FORTRAN integer value specifying the vertical coordinate
+  !   value within the respective FORTRAN fcstmdl_struct variable
+  !   arrays.
+
+  ! * bufr_info; a FORTRAN bufr_info_struct variable containing the
+  !   BUFR variable attributes.
+
+  ! * bufr; a FORTRAN bufr_struct variable containing the BUFR record
+  !   and filename attributes.
+
+  ! * obid; a FORTRAN integer value used to create a unique variable
+  !   identifier for the respective BUFR record.
+  
+  !-----------------------------------------------------------------------
+
+  subroutine bufr_record(fcstmdl,idx,kdx,bufr_info,bufr,obid)
+
+    ! Define variables passed to routine
+
+    type(bufr_struct)                                                   :: bufr
+    type(bufr_info_struct)                                              :: bufr_info    
+    type(fcstmdl_struct)                                                :: fcstmdl
+    integer                                                             :: idx
+    integer                                                             :: kdx
+    integer                                                             :: obid
+
+    ! Define variables computed within routine
+
+    character(len=8)                                                    :: cacobid
+    real(r_double)                                                      :: racobid
+    
+    !=====================================================================
+
+    ! Define local variables
+
+    equivalence(racobid,cacobid)
+    write(cacobid,500) obid
+    call variable_interface_setup_struct(bufr)
+    bufr%hdr(1)   = dble(racobid)
+    bufr%hdr(2)   = dble(fcstmdl%lon(idx))
+    bufr%hdr(3)   = dble(fcstmdl%lat(idx))
+    bufr%hdr(4)   = 0.0
+    bufr%hdr(5)   = bufr_info%obs_type_mass
+    bufr%obs(1,1) = fcstmdl%p(idx,kdx)/100.0
+    bufr%obs(2,1) = fcstmdl%q(idx,kdx)*1000.0*1000.0
+    bufr%obs(3,1) = (fcstmdl%t(idx,kdx) - 273.15)
+    bufr%qcf(1,1) = 2.0
+    bufr%qcf(2,1) = 2.0
+    bufr%qcf(3,1) = 2.0    
+    call bufrio_interface_write(bufr)
+
+    ! Deallocate memory for local variables
+
+    call variable_interface_cleanup_struct(bufr)
+
+    ! Define local variables
+
+    call variable_interface_setup_struct(bufr)
+    bufr%hdr(1)   = dble(racobid)
+    bufr%hdr(2)   = dble(fcstmdl%lon(idx))
+    bufr%hdr(3)   = dble(fcstmdl%lat(idx))
+    bufr%hdr(4)   = 0.0
+    bufr%hdr(5)   = bufr_info%obs_type_wind
+    bufr%obs(1,1) = fcstmdl%p(idx,kdx)/100.0
+    bufr%obs(4,1) = fcstmdl%u(idx,kdx)
+    bufr%obs(5,1) = fcstmdl%v(idx,kdx)
+    bufr%qcf(1,1) = 2.0
+    bufr%qcf(4,1) = 2.0  
+    call bufrio_interface_write(bufr)
+
+    ! Deallocate memory for local variables
+
+    call variable_interface_cleanup_struct(bufr)    
+    
+    ! Define local variables
+
+500 format(i8.8)
+
+    !=====================================================================
+    
+  end subroutine bufr_record
+    
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! fv3_bufr.f90
+
+  ! DESCRIPTION:
+
+  !
+
+  ! INPUT VARIABLES:
+
+  !
+
+  ! OUTPUT VARIABLES:
+
+  !
+
+  !-----------------------------------------------------------------------
+
+  subroutine fv3_bufr(fcstmdl,fv3)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: fcstmdl(:)
+    type(fv3_struct)                                                    :: fv3
+
+    ! Define variables computed within routine
+
+    type(bufr_struct)                                                   :: bufr
+    type(bufr_info_struct)                                              :: bufr_info
+    type(grid_struct)                                                   :: dst_grid
+    type(grid_struct)                                                   :: src_grid    
+    type(kdtree_struct)                                                 :: kdtree
+    character(len=500)                                                  :: lbufr_filepath
+    integer                                                             :: nobs
+
+    ! Define counting variables
+
+    integer                                                             :: i, j, k
+
+    !=====================================================================
+
+    ! Define local variables
+
+    bufr_info%filename = bufr_info_filepath
+    call fileio_interface_read(bufr_info)
+    bufr%hdstr         = 'SID XOB YOB DHR TYP'
+    bufr%obstr         = 'POB QOB TOB UOB VOB'
+    bufr%qcstr         = 'PQM QQM TQM WQM'
+    bufr%oestr         = 'POE QOE TOE WOE'
+    bufr%subset        = trim(adjustl(bufr_info%subset))
+    bufr%mxmn          = 5
+    bufr%mxlv          = 1
+    lbufr_filepath     = trim(adjustl(bufr_filepath))
+    call bufrio_interface_idate(analdate,bufr)
+    call bufrio_interface_open(lbufr_filepath,bufr_tblpath,bufr,.false.,   &
+         & .false.,.true.)    
+    dst_grid%ncoords   = fv3%ncoords
+    call variable_interface_setup_struct(dst_grid)
+    dst_grid%lat       = fv3%lat
+    dst_grid%lon       = fv3%lon
+    nobs               = 0
+    
+    ! Loop through local variable
+
+    do i = 1, size(fcstmdl)
+
+
+       ! NEED TO HANDLE WHEN MASKING BOTH OCEAN AND LAND
+       
+    
+       ! Check local variable and proceed accordingly
+
+       if(mask_ocean .or. mask_land) then
+
+          ! Define local variables
+
+          src_grid%ncoords = fcstmdl(i)%nobs
+          call variable_interface_setup_struct(src_grid)
+          src_grid%lat     = fcstmdl(i)%lat
+          src_grid%lon     = fcstmdl(i)%lon
+          kdtree%ncoords   = dst_grid%ncoords
+          kdtree%nn        = 1
+          call variable_interface_setup_struct(kdtree)
+
+          ! Compute local variables
+
+          call math_methods_kdtree_nn(src_grid,dst_grid,kdtree)
+
+          ! Loop through local variable
+
+          do j = 1, fcstmdl(i)%nobs
+
+             ! Loop through local variable
+
+             do k = 1, fcstmdl(i)%nz
+
+                ! Define local variables
+
+                nobs = nobs + 1
+
+                ! Check local variable and proceed accordingly
+
+                if(fcstmdl(i)%slmsk(j) .eq. fv3%slmsk(kdtree%idx(j,1)))    &
+                     & then
+                
+                   ! Check local variable and proceed accordingly
+
+                   if(mask_ocean .and. (fv3%slmsk(kdtree%idx(j,1)) .ge.    &
+                        & 1.0)) then
+
+                      ! Define local variables
+
+                      call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
+                           & nobs)
+                  
+                   end if ! if(mask_ocean
+                          ! .and. (fv3%slmsk(kdtree%idx(j,1))
+                          ! .ge. 1.0))
+
+                   ! Check local variable and proceed accordingly
+
+                   if(mask_land .and. (fv3%slmsk(kdtree%idx(j,1)) .le.     &
+                        & 0.0)) then
+
+                      ! Define local variables
+
+                      call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
+                           & nobs)                   
+
+                   end if ! if(mask_land
+                          ! .and. (fv3%slmsk(kdtree%idx(j,1))
+                          ! .le. 0.0))
+                
+                end if ! if(fcstmdl(i)%slmsk(j)
+                       ! .eq. fv3%slmsk(kdtree%idx(j,1)))
+
+             end do ! do k = 1, fcstmdl(i)%nz
+                
+          end do ! do j = 1, fcstmdl(i)%nobs
+
+       else   ! if(mask_ocean .or. mask_land)
+
+          ! Loop through local variable
+          
+          do j = 1, fcstmdl(i)%nobs
+             
+             ! Loop through local variable
+             
+             do k = 1, fcstmdl(i)%nz
+
+                ! Define local variables
+
+                nobs = nobs + 1
+                call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,nobs)
+                
+             end do ! do k = 1, fcstmdl(i)%nz
+             
+          end do ! do j = 1, fcstmdl(i)%nobs                
+          
+       end if ! if(mask_ocean .or. mask_land)
+          
+       ! Deallocate memory for local variables
+
+       call variable_interface_cleanup_struct(fcstmdl(i))
+       call variable_interface_cleanup_struct(src_grid)
+       call variable_interface_cleanup_struct(kdtree)
+       
+    end do ! do i = 1, size(fcstmdl)
+
+    ! Define local variables
+
+    call bufrio_interface_close(.false.,.true.)
+
+    ! Deallocate memory for local variables
+
+    call variable_interface_cleanup_struct(dst_grid)
+
+    !=====================================================================
+    
+  end subroutine fv3_bufr
+    
+  !=======================================================================
+
+  ! SUBROUTINE:
+
   ! fv3_observations.f90
 
   ! DESCRIPTION:
 
-  ! This subroutine populates the arrays within the FORTRAN
-  ! fcstmdl_struct variable with values from the FORTRAN fv3_struct
-  ! variable.
+  ! This subroutine computes and populates the arrays within the
+  ! FORTRAN fcstmdl_struct variable with values from the FORTRAN
+  ! fv3_struct variable; the geographical coordinate values are
+  ! updated relative to the difference between the observed and the
+  ! forecast model geographical positions.
 
   ! INPUT VARIABLES:
 
   ! * fcstmdl; a FORTRAN fcstmdl_struct variable which has been
   !   initialized and observation locations assigned.
 
+  ! * tcinfo; a FORTRAN tcinfo_struct variable now containing the
+  !   tropical cyclone attributes retrieved from the user specified
+  !   file.
+  
   ! * fv3; a FORTRAN fv3_struct variable containing with variable
   !   arrays which have been populated from the contents of the
   !   external FV3 netcdf files.
@@ -156,19 +454,35 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine fv3_observations(fcstmdl,fv3)
+  subroutine fv3_observations(fcstmdl,tcinfo,fv3)
 
     ! Define variables passed to routine
 
     type(fcstmdl_struct)                                                :: fcstmdl
     type(fv3_struct)                                                    :: fv3
+    type(tcinfo_struct)                                                 :: tcinfo
 
+    ! Define variables computed within routine
+
+    real(r_kind)                                                        :: dlat
+    real(r_kind)                                                        :: dlon
+    
     ! Define counting variables
 
     integer                                                             :: i
     
     !=====================================================================  
 
+    ! Compute local variables
+
+    dlat = tcinfo%obs_clat - tcinfo%mdl_clat
+    dlon = tcinfo%obs_clon - tcinfo%mdl_clon
+
+    ! Define local variables
+
+    fcstmdl%land  = .false.
+    fcstmdl%ocean = .false.
+    
     ! Loop through local variable
 
     do i = 1, fcstmdl%nobs
@@ -180,11 +494,21 @@ contains
        fcstmdl%t(i,:)   = fv3%t(fcstmdl%idx(i),:)
        fcstmdl%u(i,:)   = fv3%u(fcstmdl%idx(i),:)
        fcstmdl%v(i,:)   = fv3%v(fcstmdl%idx(i),:)
-       fcstmdl%lat(i)   = fv3%lat(fcstmdl%idx(i))
-       fcstmdl%lon(i)   = fv3%lon(fcstmdl%idx(i))
+       fcstmdl%lat(i)   = fv3%lat(fcstmdl%idx(i)) + dlat
+       fcstmdl%lon(i)   = fv3%lon(fcstmdl%idx(i)) + dlon
        fcstmdl%slmsk(i) = fv3%slmsk(fcstmdl%idx(i))
+
+       ! Check local variable and proceed accordingly
+
+       if(fcstmdl%slmsk(i) .le. 0.0) fcstmdl%ocean(i) = .true.
+       if(fcstmdl%slmsk(i) .ge. 1.0) fcstmdl%land(i)  = .true.
        
     end do ! do i = 1, fcstmdl%nobs
+
+    ! Define local variables
+
+    fcstmdl%clat = tcinfo%obs_clat
+    fcstmdl%clon = tcinfo%obs_clon
        
     !=====================================================================  
     

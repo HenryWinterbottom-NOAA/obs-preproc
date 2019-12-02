@@ -54,7 +54,8 @@ module variable_interface
   public :: sonde_struct
   public :: spval
   public :: statgrid_struct
-  public :: tcinfo_struct  
+  public :: tcinfo_struct
+  public :: topogrid_struct
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   public :: varinfo_struct
@@ -70,6 +71,7 @@ module variable_interface
      module procedure finalize_meteo_struct
      module procedure finalize_sonde_struct
      module procedure finalize_statgrid_struct
+     module procedure finalize_topogrid_struct
      module procedure finalize_varinfo_struct
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
@@ -84,6 +86,7 @@ module variable_interface
      module procedure initialize_meteo_struct
      module procedure initialize_sonde_struct
      module procedure initialize_statgrid_struct
+     module procedure initialize_topogrid_struct
      module procedure initialize_varinfo_struct
   end interface variable_interface_setup_struct
 
@@ -117,6 +120,8 @@ module variable_interface
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
   type fcstmdl_struct
+     logical,                   dimension(:),               allocatable :: land
+     logical,                   dimension(:),               allocatable :: ocean
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
      real(r_kind),              dimension(:,:),             allocatable :: t
@@ -126,6 +131,8 @@ module variable_interface
      real(r_kind),              dimension(:),               allocatable :: lon
      real(r_kind),              dimension(:),               allocatable :: slmsk     
      real(r_kind),              dimension(:),               allocatable :: idx
+     real(r_kind)                                                       :: clat
+     real(r_kind)                                                       :: clon
      integer                                                            :: nobs
      integer                                                            :: nz
   end type fcstmdl_struct         ! type fcstmdl_struct
@@ -150,10 +157,10 @@ module variable_interface
      real(r_kind),              dimension(:),               allocatable :: lon
      real(r_kind),              dimension(:),               allocatable :: radius
      real(r_kind),              dimension(:),               allocatable :: rotang
-     real(r_kind)                                                       :: gclon
-     real(r_kind)                                                       :: gclat
      real(r_kind)                                                       :: gcdist
      real(r_kind)                                                       :: gchead
+     real(r_kind)                                                       :: gclat
+     real(r_kind)                                                       :: gclon
      integer                                                            :: ncoords
      integer                                                            :: nx
      integer                                                            :: ny
@@ -269,7 +276,15 @@ module variable_interface
      real(r_kind)                                                       :: obs_clon
      real(r_kind)                                                       :: obs_pcen
      real(r_kind)                                                       :: obs_vmax
-  end type tcinfo_struct          ! type tcinfo_struct  
+  end type tcinfo_struct          ! type tcinfo_struct
+  type topogrid_struct
+     real(r_kind),              dimension(:),               allocatable :: lat
+     real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: topo
+     integer                                                            :: ncoords
+     integer                                                            :: nx
+     integer                                                            :: ny
+  end type topogrid_struct        ! type topogrid_struct  
   type varinfo_struct
      character(len=500),        dimension(:,:,:),           allocatable :: varattrs
      character(len=25),         dimension(:),               allocatable :: varname
@@ -353,6 +368,8 @@ contains
 
     ! Deallocate memory for local variables
 
+    if(allocated(grid%land))  deallocate(grid%land)
+    if(allocated(grid%ocean)) deallocate(grid%ocean)
     if(allocated(grid%p))     deallocate(grid%p)
     if(allocated(grid%q))     deallocate(grid%q)
     if(allocated(grid%t))     deallocate(grid%t)
@@ -713,6 +730,41 @@ contains
 
   ! SUBROUTINE:
 
+  ! finalize_topogrid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! topogrid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN topogrid_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_topogrid_struct(grid)
+
+    ! Define variables passed routine
+
+    type(topogrid_struct)                                               :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%lat))  deallocate(grid%lat)
+    if(allocated(grid%lon))  deallocate(grid%lon)
+    if(allocated(grid%topo)) deallocate(grid%topo)
+
+    !=====================================================================
+
+  end subroutine finalize_topogrid_struct  
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
   ! finalize_varinfo_struct.f90
 
   ! DESCRIPTION:
@@ -838,6 +890,8 @@ contains
 
     ! Deallocate memory for local variables
 
+    if(.not. allocated(grid%land))  allocate(grid%land(grid%nobs))
+    if(.not. allocated(grid%ocean)) allocate(grid%ocean(grid%nobs))
     if(.not. allocated(grid%p))     allocate(grid%p(grid%nobs,grid%nz))
     if(.not. allocated(grid%q))     allocate(grid%q(grid%nobs,grid%nz))
     if(.not. allocated(grid%t))     allocate(grid%t(grid%nobs,grid%nz))
@@ -1278,6 +1332,52 @@ contains
     !=====================================================================
     
   end subroutine initialize_statgrid_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! initialize_topogrid_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! topogrid_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN topogrid_struct variable containing the
+  !   variables necessary to allocate and initialize the respective
+  !   variable arrays.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN topogrid_struct variable containing allocated
+  !   and initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_topogrid_struct(grid)
+
+    ! Define variables passed routine
+
+    type(topogrid_struct)                                               :: grid
+
+    !=====================================================================
+
+    ! Define local variables
+
+    grid%ncoords = (grid%nx*grid%ny)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%lat))  allocate(grid%lat(grid%ncoords))
+    if(.not. allocated(grid%lon))  allocate(grid%lon(grid%ncoords))
+    if(.not. allocated(grid%topo)) allocate(grid%topo(grid%ncoords))
+
+    !=====================================================================
+
+  end subroutine initialize_topogrid_struct  
 
   !=======================================================================
 
