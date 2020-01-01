@@ -20,7 +20,7 @@ fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-m
 fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile1.nc','/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile2.nc','/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile3.nc','/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile4.nc','/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile5.nc','/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.tile6.nc'
 is_fv3              = T
 is_global           = T
-is_rotate_winds     = F
+is_rotate_winds     = T
 !sample_radius       = 150000.0
 /
 
