@@ -96,8 +96,11 @@ contains
 
     call fileio_interface_read(tcinfo_filename,tcinfo)
     call fileio_interface_read(fv3)
-    grid%nx = fv3%nx
-    grid%ny = fv3%ny
+
+    ! Check local variable and proceed accordingly
+
+    if(is_global) grid%ncoords   = (size(fv3_orog_filename)*fv3%nx*fv3%ny)
+    if(is_regional) grid%ncoords = (fv3%nx*fv3%ny)
     call variable_interface_setup_struct(grid)
     
     ! Allocate memory for local variables
@@ -524,7 +527,8 @@ contains
 
     ! Check local variable and proceed accordingly
 
-    if(is_rotate_winds) call rotate_winds(fv3_local,fcstmdl)
+    if(is_rotate_winds .and. is_regional) call rotate_winds(fv3_local,     &
+         & fcstmdl)
     
     ! Loop through local variable
 

@@ -932,8 +932,8 @@ contains
 
     ! Define local variables
 
-    grid%ncoords = (grid%nx*grid%ny)
-
+    if(grid%ncoords .le. 0) grid%ncoords = (grid%nx*grid%ny)
+       
     ! Allocate memory for local variables
 
     if(.not. allocated(grid%p))     allocate(grid%p(grid%ncoords,grid%nz))

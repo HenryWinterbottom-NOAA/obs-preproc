@@ -19,6 +19,7 @@ fv3_orog_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-m
 fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
 fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
 is_fv3              = T
+is_regional         = T
 is_rotate_winds     = T
 sample_radius       = 50000.0
 /
