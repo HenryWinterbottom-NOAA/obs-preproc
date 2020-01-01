@@ -64,9 +64,10 @@ module namelist_interface
   ! * debug; a FORTRAN logical value specifying whether to include
   !   debug information during execution.
 
-  ! * fv3_dyns_filename; a FORTRAN character string specifying the
-  !   path to the FV3 netcdf file containing the dynamical core
-  !   variables; namely, the following netcdf variables:
+  ! * fv3_dyns_filename; an array of FORTRAN character strings
+  !   specifying the path to the FV3 netcdf files containing the
+  !   dynamical core variables; namely, the following netcdf
+  !   variables:
 
   !   + T; temperature (K).
   
@@ -78,12 +79,13 @@ module namelist_interface
   !   + va; meridional wind on at the center of the grid cell (meters
   !         per second).
 
-  !   Both is_fcst_model and is_fv3 must both be .true. for this file
-  !   to be invoked.
+  !   Both is_fcst_model and is_fv3 must both be .true. for these
+  !   files to be invoked.
 
-  ! * fv3_orog_filename; a FORTRAN character string specifying the
-  !   path to the FV3 netcdf file containing the orography and grid
-  !   variables; namely the following netcdf variables:
+  ! * fv3_orog_filename; an array of FORTRAN character strings
+  !   specifying the path to the FV3 netcdf files containing the
+  !   orography and grid variables; namely the following netcdf
+  !   variables:
 
   !   + geolat; the latitude coordinate at the center of the grid cell
   !     (degrees).
@@ -93,8 +95,8 @@ module namelist_interface
 
   !   + slmsk; the land/sea mask.
 
-  !   Both is_fcst_model and is_fv3 must both be .true. for this file
-  !   to be invoked.
+  !   Both is_fcst_model and is_fv3 must both be .true. for these
+  !   files to be invoked.
 
   ! * fv3_static_filename; a FORTRAN character string specifying the
   !   path to the FV3 netcdf file containing the static variables;
@@ -109,14 +111,14 @@ module namelist_interface
   !   Both is_fcst_model and is_fv3 must both be .true. for this file
   !   to be invoked.
 
-  ! * fv3_tracer_filename; a FORTRAN character string specifying the
-  !   path to the FV3 netcdf file containing the tracer variables;
-  !   namely the following netcdf variables:
+  ! * fv3_tracer_filename; an array of FORTRAN character strings
+  !   specifying the path to the FV3 netcdf files containing the
+  !   tracer variables; namely the following netcdf variables:
 
   !   + sphum; specific humidity (kilograms per kilogram).
 
-  !   Both is_fcst_model and is_fv3 must both be .true. for this file
-  !   to be invoked.
+  !   Both is_fcst_model and is_fv3 must both be .true. for these
+  !   files to be invoked.
   
   ! * is_fcst_model; a FORTRAN logical value specifying whether the
   !   observations to be formatted are computed from forecast model
@@ -126,6 +128,14 @@ module namelist_interface
   !   model, for the creation of observations from forecast model
   !   fields, is from the FV3; is_fcst_model must be .true. to invoke
   !   this option.
+
+  ! * is_global; a FORTRAN logical value specifying whether the
+  !   ingested fields are from a global forecast model; applies only
+  !   if is_fcst_model is .true..
+
+  ! * is_regional; a FORTRAN logical value specifying whether the
+  !   ingested fields are from a regional forecast model; applies only
+  !   if is_fcst_model is .true..
 
   ! * is_relocate; a FORTRAN logical value specifying whether to
   !   relocate forecast model derived observations relative to
@@ -194,6 +204,12 @@ module namelist_interface
   ! Define local variables
 
   character(len=500)                                                    :: &
+       & fv3_dyns_filename(6) = 'NOT USED'
+  character(len=500)                                                    :: &
+       & fv3_orog_filename(6) = 'NOT USED'
+  character(len=500)                                                    :: &
+       & fv3_tracer_filename(6) = 'NOT USED'  
+  character(len=500)                                                    :: &
        & bufr_filepath = 'NOT USED'
   character(len=500)                                                    :: &
        & bufr_info_filepath = 'NOT USED'
@@ -202,13 +218,7 @@ module namelist_interface
   character(len=500)                                                    :: &
        & datapath = './'
   character(len=500)                                                    :: &
-       & fv3_dyns_filename = 'NOT USED'
-  character(len=500)                                                    :: &
-       & fv3_orog_filename = 'NOT USED'
-  character(len=500)                                                    :: &
        & fv3_static_filename = 'NOT USED'
-  character(len=500)                                                    :: &
-       & fv3_tracer_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
@@ -223,6 +233,10 @@ module namelist_interface
        & is_fcst_model = .false.
   logical                                                               :: &
        & is_fv3 = .false.
+  logical                                                               :: &
+       & is_global = .false.
+  logical                                                               :: &
+       & is_regional = .false.
   logical                                                               :: &
        & is_relocate = .false.
   logical                                                               :: &
@@ -250,8 +264,8 @@ module namelist_interface
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
        & mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
-       & fv3_static_filename, fv3_tracer_filename, is_fv3,                 &
-       & is_rotate_winds, sample_radius
+       & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
+       & is_regional, is_rotate_winds, sample_radius
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
@@ -281,6 +295,10 @@ contains
     character(len=500)                                                  :: nml_filename
     logical                                                             :: is_it_there
     integer                                                             :: unit_nml
+
+    ! Define counting variables
+
+    integer                                                             :: i
 
     !=================================================================== 
 
@@ -339,15 +357,82 @@ contains
     write(6,*) 'MASK_OCEAN                    = ', mask_ocean    
     write(6,*) '/'
     write(6,*) '&FCST_MDL'
-    write(6,*) 'FV3_DYNS_FILENAME             = ',                         &
-         & trim(adjustl(fv3_dyns_filename))
-    write(6,*) 'FV3_OROG_FILENAME             = ',                         &
-         & trim(adjustl(fv3_orog_filename))
-    write(6,*) 'FV3_STATIC_FILENAME           = ',                         &
-         & trim(adjustl(fv3_static_filename))
-    write(6,*) 'FV3_TRACER_FILENAME           = ',                         &
-         & trim(adjustl(fv3_tracer_filename))
+
+    ! Check local variable and proceed accordingly
+    
+    if(is_global) then
+
+       ! Define local variables
+
+       write(6,*) 'FV3_DYNS_FILENAME             = '
+
+       ! Loop through local variable
+
+       do i = 1, 6
+          
+          ! Define local variables
+
+          write(6,*) trim(adjustl(fv3_dyns_filename(i)))
+
+       end do ! do i = 1, 6
+
+       ! Define local variables
+
+       write(6,*) 'FV3_OROG_FILENAME             = '
+
+       ! Loop through local variable
+
+       do i = 1, 6
+          
+          ! Define local variables
+
+          write(6,*) trim(adjustl(fv3_orog_filename(i)))
+
+       end do ! do i = 1, 6
+
+       ! Define local variables
+       
+       write(6,*) 'FV3_STATIC_FILENAME           = ',                      &
+            & trim(adjustl(fv3_static_filename))
+
+       ! Define local variables
+
+       write(6,*) 'FV3_TRACER_FILENAME           = '
+
+       ! Loop through local variable
+
+       do i = 1, 6
+          
+          ! Define local variables
+
+          write(6,*) trim(adjustl(fv3_tracer_filename(i)))
+
+       end do ! do i = 1, 6       
+       
+    end if ! if(is_global)
+
+    ! Check local variable and proceed accordingly
+    
+    if(is_regional) then
+
+       ! Define local variables
+       
+       write(6,*) 'FV3_DYNS_FILENAME             = ',                      &
+            & trim(adjustl(fv3_dyns_filename(1)))
+       write(6,*) 'FV3_OROG_FILENAME             = ',                      &
+            & trim(adjustl(fv3_orog_filename(1)))
+       write(6,*) 'FV3_STATIC_FILENAME           = ',                      &
+            & trim(adjustl(fv3_static_filename))
+       write(6,*) 'FV3_TRACER_FILENAME           = ',                      &
+            & trim(adjustl(fv3_tracer_filename(1)))
+       
+    end if ! if(is_regional)
+
+    ! Define local variables
+    
     write(6,*) 'IS_FV3                        = ', is_fv3
+    write(6,*) 'IS_GLOBAL                     = ', is_global
+    write(6,*) 'IS_REGIONAL                   = ', is_regional
     write(6,*) 'IS_ROTATE_WINDS               = ', is_rotate_winds
     write(6,*) 'SAMPLE_RADIUS                 = ', sample_radius
     write(6,*) '/'
