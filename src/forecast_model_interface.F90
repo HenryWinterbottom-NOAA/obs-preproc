@@ -35,6 +35,7 @@ module forecast_model_interface
   use constants_interface
   use fileio_interface
   use grid_methods_interface
+  use gridprojs_interface
   use kinds_interface
   use math_methods_interface
   use namelist_interface
@@ -491,7 +492,15 @@ contains
 
     ! Define variables computed within routine
 
-    type(fv3_struct)                                                    :: fv3_local    
+    type(fv3_struct)                                                    :: fv3_local
+    real(r_double),             dimension(:),               allocatable :: urot
+    real(r_double),             dimension(:),               allocatable :: vrot
+    real(r_double)                                                      :: flat
+    real(r_double)                                                      :: flon
+    real(r_double)                                                      :: tlat
+    real(r_double)                                                      :: tlon
+    real(r_double)                                                      :: crot
+    real(r_double)                                                      :: srot
     real(r_kind)                                                        :: dlat
     real(r_kind)                                                        :: dlon
     
@@ -529,6 +538,11 @@ contains
 
     if(is_rotate_winds .and. is_regional) call rotate_winds(fv3_local,     &
          & fcstmdl)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(urot)) allocate(urot(fcstmdl%nz))
+    if(.not. allocated(vrot)) allocate(vrot(fcstmdl%nz))
     
     ! Loop through local variable
 
@@ -536,11 +550,28 @@ contains
 
        ! Define local variables
 
+       flat = dble(fv3_local%lat(fcstmdl%idx(i)))
+       flon = dble(fv3_local%lon(fcstmdl%idx(i)))
+       tlat = flat + dble(dlat)
+       tlon = flon + dble(dlon)
+
+       ! Compute local variables
+
+       call movect(flat,flon,tlat,tlon,crot,srot)
+       urot(:) = crot*dble(fv3_local%u(fcstmdl%idx(i),:)) -            &
+            & srot*dble(fv3_local%v(fcstmdl%idx(i),:))
+       vrot(:) = srot*dble(fv3_local%u(fcstmdl%idx(i),:)) +            &
+            & crot*dble(fv3_local%v(fcstmdl%idx(i),:))
+       
+       ! Define local variables
+
        fcstmdl%p(i,:)   = fv3_local%p(fcstmdl%idx(i),:)
        fcstmdl%q(i,:)   = fv3_local%q(fcstmdl%idx(i),:)
        fcstmdl%t(i,:)   = fv3_local%t(fcstmdl%idx(i),:)
-       fcstmdl%u(i,:)   = fv3_local%u(fcstmdl%idx(i),:)
-       fcstmdl%v(i,:)   = fv3_local%v(fcstmdl%idx(i),:)
+       fcstmdl%u(i,:)   = fv3_local%u(fcstmdl%idx(i),:) +              &
+            & real(urot(:))
+       fcstmdl%v(i,:)   = fv3_local%v(fcstmdl%idx(i),:) +              &
+            & real(vrot(:))
        fcstmdl%lat(i)   = fv3_local%lat(fcstmdl%idx(i)) + dlat
        fcstmdl%lon(i)   = fv3_local%lon(fcstmdl%idx(i)) + dlon
        fcstmdl%slmsk(i) = fv3_local%slmsk(fcstmdl%idx(i))
@@ -549,6 +580,8 @@ contains
 
     ! Deallocate memory for local variables
 
+    if(allocated(urot)) deallocate(urot)
+    if(allocated(vrot)) deallocate(vrot)
     call variable_interface_cleanup_struct(fv3_local)
            
     !=====================================================================  
