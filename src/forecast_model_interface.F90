@@ -35,6 +35,7 @@ module forecast_model_interface
   use constants_interface
   use fileio_interface
   use grid_methods_interface
+  use gridprojs_interface
   use kinds_interface
   use math_methods_interface
   use namelist_interface
@@ -491,7 +492,7 @@ contains
 
     ! Define variables computed within routine
 
-    type(fv3_struct)                                                    :: fv3_local    
+    type(fv3_struct)                                                    :: fv3_local
     real(r_kind)                                                        :: dlat
     real(r_kind)                                                        :: dlon
     
@@ -521,19 +522,16 @@ contains
 
     ! Define local variables
 
-    fv3_local    = fv3
-    fcstmdl%clat = tcinfo%obs_clat
-    fcstmdl%clon = tcinfo%obs_clon
+    fv3_local = fv3
 
     ! Check local variable and proceed accordingly
 
-    if(is_rotate_winds .and. is_regional) call rotate_winds(fv3_local,     &
-         & fcstmdl)
-    
+    if(is_rotate_winds) call rotate_winds(fv3_local,dlat,dlon)
+
     ! Loop through local variable
 
     do i = 1, fcstmdl%nobs
-
+ 
        ! Define local variables
 
        fcstmdl%p(i,:)   = fv3_local%p(fcstmdl%idx(i),:)
@@ -572,30 +570,39 @@ contains
   ! * fv3; a FORTRAN fv3_struct variable containing (at minimum) the
   !   model grid projection information.
 
-  ! * fcstmdl; a FORTRAN fcstmdl_struct variable containing the
-  !   respective forecast model analysis variables.
+  ! * dlat; a FORTRAN 4-byte real-valued variable specifying the
+  !   offset latitude value.
+
+  ! * dlon; a FORTRAN 4-byte real-valued variable specifying the
+  !   offset latitude value.
 
   ! OUTPUT VARIABLES:
 
-  ! * fcstmdl; a FORTRAN fcstmdl_struct variable containing the
-  !   respective forecast model winds rotated to an Earth-relative
-  !   coordinate system.
+  ! * fv3; a FORTRAN fv3_struct variable containing the respective
+  !   forecast model winds rotated to an Earth-relative coordinate
+  !   system.
 
   !-----------------------------------------------------------------------
 
-  subroutine fv3_rotate_winds(fv3,fcstmdl)
+  subroutine fv3_rotate_winds(fv3,dlat,dlon)
 
     ! Define variables passed to routine
 
-    type(fcstmdl_struct)                                                :: fcstmdl
     type(fv3_struct)                                                    :: fv3
+    real(r_kind)                                                        :: dlat
+    real(r_kind)                                                        :: dlon
 
     ! Define variables computed within routine
 
-    type(grid_struct)                                                   :: grid
-    real(r_kind),               dimension(:),               allocatable :: u_er
-    real(r_kind),               dimension(:),               allocatable :: v_er
-
+    real(r_double)                                                      :: flat
+    real(r_double)                                                      :: flon
+    real(r_double)                                                      :: tlat
+    real(r_double)                                                      :: tlon
+    real(r_double)                                                      :: crot
+    real(r_double)                                                      :: srot
+    real(r_kind),               dimension(:),               allocatable :: urot
+    real(r_kind),               dimension(:),               allocatable :: vrot
+    
     ! Define counting variables
 
     integer                                                             :: i
@@ -604,44 +611,41 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(u_er)) allocate(u_er(fv3%ncoords))
-    if(.not. allocated(v_er)) allocate(v_er(fv3%ncoords))
+    if(.not. allocated(urot)) allocate(urot(fv3%nz))
+    if(.not. allocated(vrot)) allocate(vrot(fv3%nz))
 
-    ! Define local variables
-
-    grid%ncoords = fv3%ncoords
-    call variable_interface_setup_struct(grid)
-    grid%gclat   = fcstmdl%clat
-    grid%gclon   = fcstmdl%clon
-    grid%lat     = fv3%lat
-    grid%lon     = fv3%lon
-
-    ! Compute local variables
-
-    call grid_methods_polarcoords(grid)
-    
     ! Loop through local variable
 
-    do i = 1, fv3%nz
-       
+    do i = 1, fv3%ncoords
+
+       ! Define local variables
+
+       flat = dble(fv3%lat(i))
+       flon = dble(fv3%lon(i))
+       tlat = flat + dble(dlat)
+       tlon = flon + dble(dlon)
+
        ! Compute local variables
        
-       u_er = fv3%u(:,i)*cos(grid%rotang*deg2rad) - fv3%v(:,i)*            &
-            & sin(grid%rotang*deg2rad)
-       v_er = fv3%v(:,i)*cos(grid%rotang*deg2rad) + fv3%u(:,i)*            &
-            & sin(grid%rotang*deg2rad)
-       
-    end do ! do i = 1, fv3%nz
+       call movect(flat,flon,tlat,tlon,crot,srot)
+       urot(:) = real(crot)*fv3%u(i,:) - real(srot)*fv3%v(i,:)
+       vrot(:) = real(srot)*fv3%u(i,:) + real(crot)*fv3%v(i,:)
+
+       ! Define local variables
+
+       fv3%u(i,:) = urot(:)
+       fv3%v(i,:) = vrot(:)
+
+    end do ! do i = 1, fcstmdl%nobs
 
     ! Deallocate memory for local variables
 
-    if(allocated(u_er)) deallocate(u_er)
-    if(allocated(v_er)) deallocate(v_er)
-    call variable_interface_cleanup_struct(grid)
+    if(allocated(urot)) deallocate(urot)
+    if(allocated(vrot)) deallocate(vrot)
 
     !=====================================================================
 
-  end subroutine fv3_rotate_winds  
+  end subroutine fv3_rotate_winds
   
   !=======================================================================
 

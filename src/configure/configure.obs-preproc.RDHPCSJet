@@ -8,8 +8,7 @@ MKDIR         = /bin/mkdir -p
 F90           = ifort
 F77           = ifort
 DEBUG         = -C -g -traceback 
-FCFFLAGS      = -O3 -heap-arrays -mkl=sequential -mcmodel=large -integer-size 32 -real-size 32 -convert big_endian $(DEBUG)
-#FCFFLAGS      = -O3 -mkl=sequential -mcmodel=large -march=native -assume byterecl $(DEBUG)
+FCFFLAGS      = -O3 -mkl=sequential -mcmodel=large -Wl,-noinhibit-exec -convert big_endian $(DEBUG)
 
 # Compile time libraries.
 

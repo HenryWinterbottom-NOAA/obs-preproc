@@ -1,5 +1,5 @@
 &share
-analdate      = '2017-09-10_01:00:00'
+analdate      = '2017-09-10_00:00:00'
 datapath      = './'
 debug         = T
 is_fcst_model = T
