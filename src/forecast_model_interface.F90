@@ -531,7 +531,7 @@ contains
     ! Loop through local variable
 
     do i = 1, fcstmdl%nobs
-       
+ 
        ! Define local variables
 
        fcstmdl%p(i,:)   = fv3_local%p(fcstmdl%idx(i),:)
@@ -594,15 +594,15 @@ contains
 
     ! Define variables computed within routine
 
-    real(r_double),             dimension(:),               allocatable :: urot
-    real(r_double),             dimension(:),               allocatable :: vrot
     real(r_double)                                                      :: flat
     real(r_double)                                                      :: flon
     real(r_double)                                                      :: tlat
     real(r_double)                                                      :: tlon
     real(r_double)                                                      :: crot
     real(r_double)                                                      :: srot
-
+    real(r_kind),               dimension(:),               allocatable :: urot
+    real(r_kind),               dimension(:),               allocatable :: vrot
+    
     ! Define counting variables
 
     integer                                                             :: i
@@ -628,13 +628,13 @@ contains
        ! Compute local variables
        
        call movect(flat,flon,tlat,tlon,crot,srot)
-       urot(:) = crot*dble(fv3%u(i,:)) - srot*dble(fv3%v(i,:))
-       vrot(:) = srot*dble(fv3%u(i,:)) + crot*dble(fv3%v(i,:))
+       urot(:) = real(crot)*fv3%u(i,:) - real(srot)*fv3%v(i,:)
+       vrot(:) = real(srot)*fv3%u(i,:) + real(crot)*fv3%v(i,:)
 
        ! Define local variables
 
-       fv3%u(i,:) = fv3%u(i,:) + real(urot(:))
-       fv3%v(i,:) = fv3%v(i,:) + real(vrot(:))
+       fv3%u(i,:) = urot(:)
+       fv3%v(i,:) = vrot(:)
 
     end do ! do i = 1, fcstmdl%nobs
 
@@ -645,7 +645,7 @@ contains
 
     !=====================================================================
 
-  end subroutine fv3_rotate_winds  
+  end subroutine fv3_rotate_winds
   
   !=======================================================================
 
