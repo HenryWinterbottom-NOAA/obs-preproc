@@ -18,7 +18,7 @@
 #    along with obs-preproc.  If not, see
 #    <http://www.gnu.org/licenses/>.
 
-#----
+# ----
 
 """
 SCRIPT:   
@@ -58,11 +58,11 @@ HISTORY:
 
 """
 
-#----
+# ----
 
 import argparse
 
-#----
+# ----
 
 __author__ = "Henry R. Winterbottom"
 __copyright__ = "2019 Henry R. Winterbottom, NOAA/NCEP/EMC"
@@ -71,7 +71,8 @@ __maintainer__ = "Henry R. Winterbottom"
 __email__ = "henry.winterbottom@noaa.gov"
 __status__ = "Development"
 
-#----
+# ----
+
 
 class ObsPreProcTCV(object):
     """
@@ -87,19 +88,21 @@ class ObsPreProcTCV(object):
       options.
 
     """
-    def __init__(self,opts_obj):
+
+    def __init__(self, opts_obj):
         """ 
         DESCRIPTION:
 
         Creates a new ObsPreProcTCV object.
 
         """
-        self.opts_obj=opts_obj
-        opts_list=['ncep_trkr_filename','output_filename','tcv_filename']
+        self.opts_obj = opts_obj
+        opts_list = ['ncep_trkr_filename', 'output_filename', 'tcv_filename']
         for item in opts_list:
-            value=getattr(self.opts_obj,item)
-            setattr(self,item,value)
-    def get_basinid(self,basin):
+            value = getattr(self.opts_obj, item)
+            setattr(self, item, value)
+
+    def get_basinid(self, basin):
         """
         DESCRIPTION:
 
@@ -120,31 +123,32 @@ class ObsPreProcTCV(object):
           TC-vitals formatted records.
 
         """
-        basinid=None
-        if basin.upper()=='AL':
-            basinid='L'
-        if basin.upper()=='EP':
-            basinid='E'
-        if basin.upper()=='CP':
-            basinid='C'
-        if basin.upper()=='WP':
-            basinid='W'
-        if basin.upper()=='SC':
-            basinid='O'
-        if basin.upper()=='EC':
-            basinid='T'
-        if basin.upper()=='AU':
-            basinid='U'
-        if basin.upper()=='SP':
-            basinid='P'
-        if basin.upper()=='SI':
-            basinid='S'
-        if basin.upper()=='BB':
-            basinid='B'
-        if basin.upper()=='NA':
-            basinid='A'
+        basinid = None
+        if basin.upper() == 'AL':
+            basinid = 'L'
+        if basin.upper() == 'EP':
+            basinid = 'E'
+        if basin.upper() == 'CP':
+            basinid = 'C'
+        if basin.upper() == 'WP':
+            basinid = 'W'
+        if basin.upper() == 'SC':
+            basinid = 'O'
+        if basin.upper() == 'EC':
+            basinid = 'T'
+        if basin.upper() == 'AU':
+            basinid = 'U'
+        if basin.upper() == 'SP':
+            basinid = 'P'
+        if basin.upper() == 'SI':
+            basinid = 'S'
+        if basin.upper() == 'BB':
+            basinid = 'B'
+        if basin.upper() == 'NA':
+            basinid = 'A'
         return basinid
-    def get_tcvid(self,ncep_trkr_str):
+
+    def get_tcvid(self, ncep_trkr_str):
         """
         DESCRIPTION:
 
@@ -164,16 +168,17 @@ class ObsPreProcTCV(object):
           is compliant with the TC-vitals formatted records.
 
         """
-        (event,basin,tcid)=(None,None,None)
+        (event, basin, tcid) = (None, None, None)
         try:
-            basin=ncep_trkr_str.split(',')[0].strip()
-            tcid=ncep_trkr_str.split(',')[1].strip()
-            kwargs={'basin':basin}
-            basinid=self.get_basinid(**kwargs)
-            event='%s%s'%(tcid,basinid)
+            basin = ncep_trkr_str.split(',')[0].strip()
+            tcid = ncep_trkr_str.split(',')[1].strip()
+            kwargs = {'basin': basin}
+            basinid = self.get_basinid(**kwargs)
+            event = '%s%s' % (tcid, basinid)
         except IndexError:
             pass
-        return (event,basin,tcid)
+        return (event, basin, tcid)
+
     def read_ncep_trkr(self):
         """
         DESCRIPTION:
@@ -185,61 +190,63 @@ class ObsPreProcTCV(object):
         within the record.
 
         """
-        ncep_trkr_vars_dict={'clat':6,'clon':7,'vmax':8,'pcen':9}
-        self.ncep_trkr_dict=dict()
-        with open(self.ncep_trkr_filename,'r') as f:
-            data=f.read()
-        event_opts=['basin','tcid']
+        ncep_trkr_vars_dict = {'clat': 6, 'clon': 7, 'vmax': 8, 'pcen': 9}
+        self.ncep_trkr_dict = dict()
+        with open(self.ncep_trkr_filename, 'r') as f:
+            data = f.read()
+        event_opts = ['basin', 'tcid']
         for item in data.split('\n'):
-            kwargs={'ncep_trkr_str':item}
-            (event,basin,tcid)=self.get_tcvid(**kwargs)
+            kwargs = {'ncep_trkr_str': item}
+            (event, basin, tcid) = self.get_tcvid(**kwargs)
             if event is not None:
-                self.ncep_trkr_dict[event]=dict()
+                self.ncep_trkr_dict[event] = dict()
                 for opt in event_opts:
-                    self.ncep_trkr_dict[event][opt]=eval(opt)
+                    self.ncep_trkr_dict[event][opt] = eval(opt)
         for key in self.ncep_trkr_dict.keys():
             for item in data.split('\n'):
-                basin=self.ncep_trkr_dict[key]['basin']
-                tcid=self.ncep_trkr_dict[key]['tcid']
-                ncep_trkr_str='%s, %s,'%(basin,tcid)
+                basin = self.ncep_trkr_dict[key]['basin']
+                tcid = self.ncep_trkr_dict[key]['tcid']
+                ncep_trkr_str = '%s, %s,' % (basin, tcid)
                 if ncep_trkr_str in item:
                     for ncep_trkr_var in ncep_trkr_vars_dict.keys():
-                        if (ncep_trkr_var.lower()=='clat') or \
-                           (ncep_trkr_var.lower()=='clon'):
-                            idx=ncep_trkr_vars_dict[ncep_trkr_var]
+                        if (ncep_trkr_var.lower() == 'clat') or \
+                           (ncep_trkr_var.lower() == 'clon'):
+                            idx = ncep_trkr_vars_dict[ncep_trkr_var]
                             try:
-                                var=item.split(',')[idx]
-                                hemis=var[-1:]
-                                if ncep_trkr_var.lower()=='clon':
-                                    clon=float(var[:-1])/10.0
-                                    if hemis=='W':
-                                        lon_scale=-1.0
+                                var = item.split(',')[idx]
+                                hemis = var[-1:]
+                                if ncep_trkr_var.lower() == 'clon':
+                                    clon = float(var[:-1])/10.0
+                                    if hemis == 'W':
+                                        lon_scale = -1.0
                                     else:
-                                        lon_scale=1.0
-                                    clon=clon*lon_scale
-                                if ncep_trkr_var.lower()=='clat':
-                                    clat=float(var[:-1])/10.0
-                                    if hemis=='S':
-                                        lat_scale=-1.0
+                                        lon_scale = 1.0
+                                    clon = clon*lon_scale
+                                if ncep_trkr_var.lower() == 'clat':
+                                    clat = float(var[:-1])/10.0
+                                    if hemis == 'S':
+                                        lat_scale = -1.0
                                     else:
-                                        lat_scale=1.0
-                                    clat=clat*lat_scale
+                                        lat_scale = 1.0
+                                    clat = clat*lat_scale
                             except IndexError:
                                 pass
-                        if (ncep_trkr_var.lower()=='vmax') or \
-                           (ncep_trkr_var.lower()=='pcen'):
-                            idx=ncep_trkr_vars_dict[ncep_trkr_var]
+                        if (ncep_trkr_var.lower() == 'vmax') or \
+                           (ncep_trkr_var.lower() == 'pcen'):
+                            idx = ncep_trkr_vars_dict[ncep_trkr_var]
                             try:
-                                var=item.split(',')[idx]
-                                if ncep_trkr_var.lower()=='vmax':
-                                    vmax=float(var)/1.94384
-                                if ncep_trkr_var.lower()=='pcen':
-                                    pcen=float(var)
+                                var = item.split(',')[idx]
+                                if ncep_trkr_var.lower() == 'vmax':
+                                    vmax = float(var)/1.94384
+                                if ncep_trkr_var.lower() == 'pcen':
+                                    pcen = float(var)
                             except IndexError:
                                 pass
                     for ncep_trkr_var in ncep_trkr_vars_dict.keys():
-                        self.ncep_trkr_dict[key][ncep_trkr_var]=eval(ncep_trkr_var)
+                        self.ncep_trkr_dict[key][ncep_trkr_var] = eval(
+                            ncep_trkr_var)
                     break
+
     def read_tcv(self):
         """
         DESCRIPTION:
@@ -250,19 +257,20 @@ class ObsPreProcTCV(object):
         sea-level pressure) for each event within the record.
 
         """
-        tcv_vars_dict={'event':1,'clat':5,'clon':6,'pcen':9,'vmax':12}
-        self.tcv_dict=dict()
-        with open(self.tcv_filename,'r') as f:
-            data=f.read()
+        tcv_vars_dict = {'event': 1, 'clat': 5,
+                         'clon': 6, 'pcen': 9, 'vmax': 12}
+        self.tcv_dict = dict()
+        with open(self.tcv_filename, 'r') as f:
+            data = f.read()
         for item in data.split('\n'):
             for tcv_var in tcv_vars_dict.keys():
-                if tcv_var.lower()=='event':
-                    idx=tcv_vars_dict[tcv_var]
+                if tcv_var.lower() == 'event':
+                    idx = tcv_vars_dict[tcv_var]
                     try:
-                        tcid=item.split()[idx]
+                        tcid = item.split()[idx]
                     except IndexError:
                         pass
-                    self.tcv_dict[tcid]=dict()
+                    self.tcv_dict[tcid] = dict()
                 else:
                     pass
         for tcid in self.tcv_dict.keys():
@@ -270,46 +278,47 @@ class ObsPreProcTCV(object):
                 try:
                     if tcid in item.split()[1]:
                         for tcv_var in tcv_vars_dict.keys():
-                            if tcv_var.lower()!='event':
-                                if (tcv_var.lower()=='clat') or \
-                                   (tcv_var.lower()=='clon'):
-                                    idx=tcv_vars_dict[tcv_var]
+                            if tcv_var.lower() != 'event':
+                                if (tcv_var.lower() == 'clat') or \
+                                   (tcv_var.lower() == 'clon'):
+                                    idx = tcv_vars_dict[tcv_var]
                                     try:
-                                        var=item.split()[idx]
-                                        hemis=var[-1:]
-                                        if tcv_var.lower()=='clon':
-                                            clon=float(var[:-1])/10.0
-                                            if hemis=='W':
-                                                lon_scale=-1.0
+                                        var = item.split()[idx]
+                                        hemis = var[-1:]
+                                        if tcv_var.lower() == 'clon':
+                                            clon = float(var[:-1])/10.0
+                                            if hemis == 'W':
+                                                lon_scale = -1.0
                                             else:
-                                                lon_scale=1.0
-                                            clon=clon*lon_scale
-                                        if tcv_var.lower()=='clat':
-                                            clat=float(var[:-1])/10.0
-                                            if hemis=='S':
-                                                lat_scale=-1.0
+                                                lon_scale = 1.0
+                                            clon = clon*lon_scale
+                                        if tcv_var.lower() == 'clat':
+                                            clat = float(var[:-1])/10.0
+                                            if hemis == 'S':
+                                                lat_scale = -1.0
                                             else:
-                                                lat_scale=1.0
-                                            clat=clat*lat_scale
+                                                lat_scale = 1.0
+                                            clat = clat*lat_scale
                                     except IndexError:
                                         pass
-                                if (tcv_var.lower()=='vmax') or \
-                                   (tcv_var.lower()=='pcen'):
-                                    idx=tcv_vars_dict[tcv_var]
+                                if (tcv_var.lower() == 'vmax') or \
+                                   (tcv_var.lower() == 'pcen'):
+                                    idx = tcv_vars_dict[tcv_var]
                                     try:
-                                        var=item.split()[idx]
-                                        if tcv_var.lower()=='vmax':
-                                            vmax=float(var)
-                                        if tcv_var.lower()=='pcen':
-                                            pcen=float(var)
+                                        var = item.split()[idx]
+                                        if tcv_var.lower() == 'vmax':
+                                            vmax = float(var)
+                                        if tcv_var.lower() == 'pcen':
+                                            pcen = float(var)
                                     except IndexError:
                                         pass
-                        self.tcv_dict[tcid]['clat']=clat
-                        self.tcv_dict[tcid]['clon']=clon
-                        self.tcv_dict[tcid]['pcen']=pcen
-                        self.tcv_dict[tcid]['vmax']=vmax
+                        self.tcv_dict[tcid]['clat'] = clat
+                        self.tcv_dict[tcid]['clon'] = clon
+                        self.tcv_dict[tcid]['pcen'] = pcen
+                        self.tcv_dict[tcid]['vmax'] = vmax
                 except IndexError:
                     pass
+
     def record_write(self):
         """
         DESCRIPTION:
@@ -330,15 +339,17 @@ class ObsPreProcTCV(object):
         8. <NCEP tracker maximum wind speed (meters per second)> 
 
         """
-        records_list=['clat','clon','pcen','vmax']
-        with open(self.output_filename,'wt') as f:
+        records_list = ['clat', 'clon', 'pcen', 'vmax']
+        with open(self.output_filename, 'wt') as f:
             for event in self.ncep_trkr_dict.keys():
-                info_str=str()
-                info_str=info_str+'%s'%event
+                info_str = str()
+                info_str = info_str+'%s' % event
                 for item in records_list:
-                    info_str=info_str+' %s'%self.tcv_dict[event][item]
-                    info_str=info_str+' %s'%self.ncep_trkr_dict[event][item]
-                f.write('%s\n'%info_str)
+                    info_str = info_str+' %s' % self.tcv_dict[event][item]
+                    info_str = info_str + \
+                        ' %s' % self.ncep_trkr_dict[event][item]
+                f.write('%s\n' % info_str)
+
     def run(self):
         """
         DESCRIPTION:
@@ -357,8 +368,9 @@ class ObsPreProcTCV(object):
         self.read_tcv()
         self.read_ncep_trkr()
         self.record_write()
-        
-#----
+
+# ----
+
 
 class ObsPreProcTCVError(Exception):
     """
@@ -371,16 +383,18 @@ class ObsPreProcTCVError(Exception):
     * msg; a Python string to accompany the raised exception.
 
     """
-    def __init__(self,msg):
+
+    def __init__(self, msg):
         """
         DESCRIPTION:
 
         Creates a new ObsPreProcTCVError object.
 
         """
-        super(ObsPreProcTCVError,self).__init__(msg)
+        super(ObsPreProcTCVError, self).__init__(msg)
 
-#----
+# ----
+
 
 class ObsPreProcTCVOptions(object):
     """
@@ -390,6 +404,7 @@ class ObsPreProcTCVOptions(object):
     arguments provided by the user.
 
     """
+
     def __init__(self):
         """
         DESCRIPTION:
@@ -397,14 +412,15 @@ class ObsPreProcTCVOptions(object):
         Creates a new ObsPreProcTCVOptions object.
 
         """
-        self.parser=argparse.ArgumentParser()
-        self.parser.add_argument('-ncep','--ncep_trkr_filename',help='The path to '\
-            'the file containing the NCEP TC tracker output (fort.64).',default=None)
-        self.parser.add_argument('-tcv','--tcv_filename',help='The path to the '\
-            'file containing the TC-vitals.',default=None)
-        self.parser.add_argument('-out','--output_filename',help='The path to the '\
-            'file to contain the output record(s).',default='obs-preproc.tcv.output')
-        self.opts_obj=lambda:None
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('-ncep', '--ncep_trkr_filename', help='The path to '
+                                 'the file containing the NCEP TC tracker output (fort.64).', default=None)
+        self.parser.add_argument('-tcv', '--tcv_filename', help='The path to the '
+                                 'file containing the TC-vitals.', default=None)
+        self.parser.add_argument('-out', '--output_filename', help='The path to the '
+                                 'file to contain the output record(s).', default='obs-preproc.tcv.output')
+        self.opts_obj = lambda: None
+
     def run(self):
         """
         DESCRIPTION:
@@ -426,24 +442,25 @@ class ObsPreProcTCVOptions(object):
           options.
 
         """
-        opts_obj=self.opts_obj
-        args_list=['ncep_trkr_filename','tcv_filename']
-        args=self.parser.parse_args()
+        opts_obj = self.opts_obj
+        args_list = ['ncep_trkr_filename', 'tcv_filename']
+        args = self.parser.parse_args()
         for item in args_list:
-            value=getattr(args,item)
+            value = getattr(args, item)
             if value is None:
-                msg=('The argument %s cannot be NoneType. Aborting!!!'%item)
+                msg = ('The argument %s cannot be NoneType. Aborting!!!' % item)
                 raise ObsPreProcTCVError(msg=msg)
             else:
-                setattr(opts_obj,item,value)
-        args_list=['output_filename']
-        args=self.parser.parse_args()
+                setattr(opts_obj, item, value)
+        args_list = ['output_filename']
+        args = self.parser.parse_args()
         for item in args_list:
-            value=getattr(args,item)
-            setattr(opts_obj,item,value)
+            value = getattr(args, item)
+            setattr(opts_obj, item, value)
         return opts_obj
 
-#----
+# ----
+
 
 def main():
     """ 
@@ -453,12 +470,13 @@ def main():
     script.
 
     """
-    options=ObsPreProcTCVOptions()
-    opts_obj=options.run()
-    formattcv=ObsPreProcTCV(opts_obj=opts_obj)
+    options = ObsPreProcTCVOptions()
+    opts_obj = options.run()
+    formattcv = ObsPreProcTCV(opts_obj=opts_obj)
     formattcv.run()
 
-#----
+# ----
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()

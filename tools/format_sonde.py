@@ -18,7 +18,7 @@
 #    along with obs-preproc.  If not, see
 #    <http://www.gnu.org/licenses/>.
 
-#----
+# ----
 
 import argparse
 import collections
@@ -29,7 +29,7 @@ import os
 import string
 import sys
 
-#----
+# ----
 
 __author__ = "Henry R. Winterbottom"
 __copyright__ = "2019 Henry R. Winterbottom, NOAA/NCEP/EMC"
@@ -38,7 +38,8 @@ __maintainer__ = "Henry R. Winterbottom"
 __email__ = "henry.winterbottom@noaa.gov"
 __status__ = "Development"
 
-#----
+# ----
+
 
 class FormatSonde(object):
     """
@@ -54,24 +55,27 @@ class FormatSonde(object):
       options.
 
     """
-    def __init__(self,opts_obj):
+
+    def __init__(self, opts_obj):
         """ 
         DESCRIPTION:
 
         Creates a new FormatSonde object.
 
         """
-        self.opts_obj=opts_obj
-        opts_list=['cycle','datapath']
+        self.opts_obj = opts_obj
+        opts_list = ['cycle', 'datapath']
         for item in opts_list:
-            value=getattr(self.opts_obj,item)
-            setattr(self,item,value)
-        self.logger=FormatSondeLog()
-        self.dateobj=datetime.datetime.strptime(self.cycle,'%Y-%m-%d_%H:%M:%S')
-        self.srchstrs=['UZNT','UZPN','UZPA']
-        self.flag_list=['CCA']
-        self.max_offset_seconds=int(2*84600)
-    def check_timestamp(self,file_timestamp,timestamps):
+            value = getattr(self.opts_obj, item)
+            setattr(self, item, value)
+        self.logger = FormatSondeLog()
+        self.dateobj = datetime.datetime.strptime(
+            self.cycle, '%Y-%m-%d_%H:%M:%S')
+        self.srchstrs = ['UZNT', 'UZPN', 'UZPA']
+        self.flag_list = ['CCA']
+        self.max_offset_seconds = int(2*84600)
+
+    def check_timestamp(self, file_timestamp, timestamps):
         """
         DESCRIPTION:
 
@@ -97,26 +101,29 @@ class FormatSonde(object):
           file name.
 
         """
-        fts=file_timestamp
+        fts = file_timestamp
         try:
-            timestamp_obj=datetime.datetime.strptime(file_timestamp,'%Y%m%d%H%M')
-            offset_seconds=numpy.abs((self.dateobj-timestamp_obj).seconds)
-            if offset_seconds>self.max_offset_seconds:
-                yyyymmdd=sorted(timestamps)[0][0:8]
-                hhmm=file_timestamp[-4::]
-                fts='%s%s'%(yyyymmdd,hhmm)
+            timestamp_obj = datetime.datetime.strptime(
+                file_timestamp, '%Y%m%d%H%M')
+            offset_seconds = numpy.abs((self.dateobj-timestamp_obj).seconds)
+            if offset_seconds > self.max_offset_seconds:
+                yyyymmdd = sorted(timestamps)[0][0:8]
+                hhmm = file_timestamp[-4::]
+                fts = '%s%s' % (yyyymmdd, hhmm)
         except ValueError:
-            hhmm=file_timestamp[-4::]
+            hhmm = file_timestamp[-4::]
             for timestamp in timestamps:
-                yyyymmdd=timestamp[0:8]
-                fts='%s%s'%(yyyymmdd,hhmm)
+                yyyymmdd = timestamp[0:8]
+                fts = '%s%s' % (yyyymmdd, hhmm)
                 try:
-                    timestamp_obj=datetime.datetime.strptime(fts,'%Y%m%d%H%M')
+                    timestamp_obj = datetime.datetime.strptime(
+                        fts, '%Y%m%d%H%M')
                     break
                 except:
                     pass
         return fts
-    def collect_sondes(self,data):
+
+    def collect_sondes(self, data):
         """
         DESCRIPTION:
 
@@ -137,53 +144,54 @@ class FormatSonde(object):
           and value (TEMP-DROP sonde observation headers) pairs.
 
         """
-        infostrs=dict()
+        infostrs = dict()
         for key in sorted(data.keys()):
-            infostrs[key]=list()
+            infostrs[key] = list()
             for srchstr in self.srchstrs:
                 for item in data[key]:
                     if srchstr in item:
                         infostrs[key].append(item.strip())
-            kwargs={'infostrs':infostrs[key],'data':data[key]}
-            infostrs[key]=self.get_obsinfo(infostrs[key],data[key])
-            flag_infostrs=list()
+            kwargs = {'infostrs': infostrs[key], 'data': data[key]}
+            infostrs[key] = self.get_obsinfo(infostrs[key], data[key])
+            flag_infostrs = list()
             for item in infostrs[key].keys():
                 for flag_item in self.flag_list:
                     if flag_item in item:
                         flag_infostrs.append(item)
-            msg=('Found the following flagged message headers for %s:\n %s\n'%\
-                (key,flag_infostrs))
+            msg = ('Found the following flagged message headers for %s:\n %s\n' %
+                   (key, flag_infostrs))
             self.logger.info(msg=msg)
-        rmvinfostrs=list()
+        rmvinfostrs = list()
         for key in sorted(data.keys()):
-            infostr=infostrs[key]
+            infostr = infostrs[key]
             for item in flag_infostrs:
                 for flag_item in self.flag_list:
                     if flag_item in item:
-                        string=item.replace(flag_item,'').rstrip()
+                        string = item.replace(flag_item, '').rstrip()
                         for ifs in infostr.keys():
-                            if string==ifs:
-                                msn1=infostr[ifs]['mission']
-                                obs1=infostr[ifs]['obid']
-                                msn2=infostr[string]['mission']
-                                obs2=infostr[string]['obid']
-                                if (msn1==msn2) and (obs1==obs2):
+                            if string == ifs:
+                                msn1 = infostr[ifs]['mission']
+                                obs1 = infostr[ifs]['obid']
+                                msn2 = infostr[string]['mission']
+                                obs2 = infostr[string]['obid']
+                                if (msn1 == msn2) and (obs1 == obs2):
                                     rmvinfostrs.append(string)
-        msg=('Removing the following unique message header(s):\n %s\n'%\
-            set(rmvinfostrs))
+        msg = ('Removing the following unique message header(s):\n %s\n' %
+               set(rmvinfostrs))
         self.logger.info(msg=msg)
-        outinfostrs=list()
+        outinfostrs = list()
         for key in sorted(data.keys()):
-            outstrs=list()
+            outstrs = list()
             for item in infostrs[key].keys():
                 if item not in rmvinfostrs:
                     outstrs.append(item)
                     outinfostrs.append(item)
-            infostrs[key]=outstrs
-        msg=('The following %d TEMP-DROP sonde message headers will be processed:\n%s\n'%\
-            (len(outinfostrs),outinfostrs))
+            infostrs[key] = outstrs
+        msg = ('The following %d TEMP-DROP sonde message headers will be processed:\n%s\n' %
+               (len(outinfostrs), outinfostrs))
         self.logger.info(msg=msg)
         return outinfostrs
+
     def createfilelist(self):
         """
         DESCRIPTION:
@@ -192,12 +200,13 @@ class FormatSonde(object):
         with the expectations of the tempdrop_sonde executable.
 
         """
-        workpath=os.getcwd()
-        filenames=os.listdir(workpath)
-        with open(os.path.join(workpath,'filelist.list'),'w') as f:
+        workpath = os.getcwd()
+        filenames = os.listdir(workpath)
+        with open(os.path.join(workpath, 'filelist.list'), 'w') as f:
             for item in filenames:
                 if '.mod' in item:
-                    f.write('"%s"\n'%os.path.join(workpath,item))
+                    f.write('"%s"\n' % os.path.join(workpath, item))
+
     def find_sondefiles(self):
         """
         DESCRIPTION:
@@ -207,41 +216,43 @@ class FormatSonde(object):
         timestamp.
 
         """
-        offset_seconds=10800
-        time_dict={'year':{'cstrt':0,'cstp':4},'month':{'cstrt':4,'cstp':6},\
-            'day':{'cstrt':6,'cstp':8},'hour':{'cstrt':8,'cstp':10},\
-            'minute':{'cstrt':10,'cstp':12},'second':{'cstrt':12,'cstp':14}}
-        datetime_kwargs=dict()
-        time_key_list=['year','month','day','hour','minute','second']
-        cycle=datetime.datetime.strftime(self.dateobj,'%Y%m%d%H')
+        offset_seconds = 10800
+        time_dict = {'year': {'cstrt': 0, 'cstp': 4}, 'month': {'cstrt': 4, 'cstp': 6},
+                     'day': {'cstrt': 6, 'cstp': 8}, 'hour': {'cstrt': 8, 'cstp': 10},
+                     'minute': {'cstrt': 10, 'cstp': 12}, 'second': {'cstrt': 12, 'cstp': 14}}
+        datetime_kwargs = dict()
+        time_key_list = ['year', 'month', 'day', 'hour', 'minute', 'second']
+        cycle = datetime.datetime.strftime(self.dateobj, '%Y%m%d%H')
         for item in time_key_list:
-            cstrt=time_dict[item]['cstrt']
-            cstp=time_dict[item]['cstp']
-            value=cycle[cstrt:cstp]
-            if len(value)>0:
-                datetime_kwargs[item]=int(value)
+            cstrt = time_dict[item]['cstrt']
+            cstp = time_dict[item]['cstp']
+            value = cycle[cstrt:cstp]
+            if len(value) > 0:
+                datetime_kwargs[item] = int(value)
             else:
-                datetime_kwargs[item]=0
-        timestamp=datetime.datetime(**datetime_kwargs)
-        dtime=datetime.timedelta(seconds=offset_seconds)
-        in_list=[(timestamp-dtime).strftime('%Y%m%d'),(timestamp+dtime).strftime('%Y%m%d')]
-        timestamps=sorted(set(in_list))
-        filenames=os.listdir(self.datapath)
-        filedict=dict()
-        msg=('Cycle %s; searching for the following timestamps: %s'%(cycle,\
-            timestamps))
+                datetime_kwargs[item] = 0
+        timestamp = datetime.datetime(**datetime_kwargs)
+        dtime = datetime.timedelta(seconds=offset_seconds)
+        in_list = [(timestamp-dtime).strftime('%Y%m%d'),
+                   (timestamp+dtime).strftime('%Y%m%d')]
+        timestamps = sorted(set(in_list))
+        filenames = os.listdir(self.datapath)
+        filedict = dict()
+        msg = ('Cycle %s; searching for the following timestamps: %s' % (cycle,
+                                                                         timestamps))
         self.logger.info(msg=msg)
-        self.tempdrop_list=list()
+        self.tempdrop_list = list()
         for item in filenames:
             for timestamp in timestamps:
                 if timestamp in item:
-                    filename=os.path.join(self.datapath,item)
-                    filedict[filename]=timestamp
-                    msg=('Found file %s for processing.'%filename)
+                    filename = os.path.join(self.datapath, item)
+                    filedict[filename] = timestamp
+                    msg = ('Found file %s for processing.' % filename)
                     self.logger.info(msg=msg)
                     break
-        filedict=collections.OrderedDict(sorted(filedict.items()))
+        filedict = collections.OrderedDict(sorted(filedict.items()))
         return filedict
+
     def formatsondes(self):
         """
         DESCRIPTION:
@@ -251,41 +262,42 @@ class FormatSonde(object):
         executable.
 
         """
-        srchstrs=['REL','SPG','SPL']
-        excldstrs=['62626','REL','SPG','SPL']
+        srchstrs = ['REL', 'SPG', 'SPL']
+        excldstrs = ['62626', 'REL', 'SPG', 'SPL']
         for infile in self.tempdrop_list:
             if os.path.exists(infile):
-                with open(infile,'rb') as inf:
-                    data=inf.read()
-                outfile=('%s.mod'%infile)
-                datan=list()
-                data.replace('\r','')
-                data=data.split('\n')
-                data=filter(None,data)
+                with open(infile, 'rb') as inf:
+                    data = inf.read()
+                outfile = ('%s.mod' % infile)
+                datan = list()
+                data.replace('\r', '')
+                data = data.split('\n')
+                data = filter(None, data)
                 for item in data:
-                    item=self.stripmeta(instr=item)
+                    item = self.stripmeta(instr=item)
                     datan.append(item)
-                data=datan
-                with open(outfile,'w') as outf:
+                data = datan
+                with open(outfile, 'w') as outf:
                     for item in data:
                         if any(s in item for s in excldstrs):
                             pass
                         else:
-                            outf.write('%s\n'%item)
-                    outdata=list()
-                    for (i,item) in enumerate(data):
+                            outf.write('%s\n' % item)
+                    outdata = list()
+                    for (i, item) in enumerate(data):
                         for srchstr in srchstrs:
                             if srchstr in item:
                                 try:
-                                    nstr=data[i]+data[i+1]
-                                    nstr=self.stripmeta(instr=nstr)
-                                    indx=nstr.index(srchstr)
-                                    sstr=nstr[indx:indx+23]
-                                    sstr=self.stripmeta(instr=sstr)
-                                    outf.write('%s\n'%sstr)
+                                    nstr = data[i]+data[i+1]
+                                    nstr = self.stripmeta(instr=nstr)
+                                    indx = nstr.index(srchstr)
+                                    sstr = nstr[indx:indx+23]
+                                    sstr = self.stripmeta(instr=sstr)
+                                    outf.write('%s\n' % sstr)
                                 except IndexError:
                                     pass
-    def get_obsinfo(self,infostrs,data):
+
+    def get_obsinfo(self, infostrs, data):
         """
         DESCRIPTION:
 
@@ -307,23 +319,24 @@ class FormatSonde(object):
           flight identifications.
 
         """
-        obsdict=dict()
-        whitelist=['OB']
+        obsdict = dict()
+        whitelist = ['OB']
         for infostr in infostrs:
-            obsdict[infostr]=dict()
-            lnidx=0
-            for (i,item) in enumerate(data):
+            obsdict[infostr] = dict()
+            lnidx = 0
+            for (i, item) in enumerate(data):
                 if infostr in item:
-                    lnidx=i
+                    lnidx = i
                     break
-            for (i,item) in enumerate(data[lnidx::]):
+            for (i, item) in enumerate(data[lnidx::]):
                 if 'OB' in item:
-                    obsitem=item.split().index('OB')
-                    obsdict[infostr]['obid']=item.split()[obsitem+1]
-                    obsdict[infostr]['mission']=item.split()[1]
+                    obsitem = item.split().index('OB')
+                    obsdict[infostr]['obid'] = item.split()[obsitem+1]
+                    obsdict[infostr]['mission'] = item.split()[1]
                     break
         return obsdict
-    def read_sondefiles(self,filedict):
+
+    def read_sondefiles(self, filedict):
         """
         DESCRIPTION:
 
@@ -344,18 +357,19 @@ class FormatSonde(object):
           file) pairs.
 
         """
-        data=dict()
+        data = dict()
         for infile in filedict.keys():
-            msg=('Processing file %s.'%infile)
+            msg = ('Processing file %s.' % infile)
             self.logger.info(msg=msg)
-            year=filedict[infile][0:4]
-            month=filedict[infile][4:6]
-            day=filedict[infile][6:8]
-            lnidx=0
-            with open(infile,'rb') as f:
-                infdata=f.read()
-            data[filedict[infile]]=infdata.split('\n')
+            year = filedict[infile][0:4]
+            month = filedict[infile][4:6]
+            day = filedict[infile][6:8]
+            lnidx = 0
+            with open(infile, 'rb') as f:
+                infdata = f.read()
+            data[filedict[infile]] = infdata.split('\n')
         return data
+
     def sondedump(self):
         """
         DESCRIPTION:
@@ -381,52 +395,54 @@ class FormatSonde(object):
 
         """
         # Collect sonde files relevant for the current cycle.
-        filedict=self.find_sondefiles()
+        filedict = self.find_sondefiles()
 
         # Collect sonde file observations.
-        data=self.read_sondefiles(filedict=filedict)
+        data = self.read_sondefiles(filedict=filedict)
 
         # Collect all relevant sonde observations.
-        infostrs=self.collect_sondes(data=data)
+        infostrs = self.collect_sondes(data=data)
 
         # Create concatenated list of sonde observations.
-        infodata=dict()
+        infodata = dict()
         for timestamp in sorted(data.keys()):
-            infodata[timestamp]=list()
+            infodata[timestamp] = list()
             for item in data[timestamp]:
-                item=self.stripmeta(instr=item)
+                item = self.stripmeta(instr=item)
                 infodata[timestamp].append(item)
 
         # Loop through all timestamps and prepare individual files for
         # each observation.
         for infostr in set(infostrs):
-            infostr=self.stripmeta(instr=infostr)
-            mission_id=infostr.split()[1]
-            timestr=infostr.split()[2]
-            timestamps=sorted(data.keys())
+            infostr = self.stripmeta(instr=infostr)
+            mission_id = infostr.split()[1]
+            timestr = infostr.split()[2]
+            timestamps = sorted(data.keys())
             for timestamp in timestamps:
-                year=timestamp[0:4]
-                month=timestamp[4:6]
-                timestrday=timestr[0:2]
-                fts=('%s%s%s'%(year,month,timestr))
-                kwargs={'file_timestamp':fts,'timestamps':timestamps}
-                value=self.check_timestamp(**kwargs)
+                year = timestamp[0:4]
+                month = timestamp[4:6]
+                timestrday = timestr[0:2]
+                fts = ('%s%s%s' % (year, month, timestr))
+                kwargs = {'file_timestamp': fts, 'timestamps': timestamps}
+                value = self.check_timestamp(**kwargs)
                 if value is not None:
-                    fts=value
-                idxs=[idx for idx, e in enumerate(infodata[timestamp]) if infostr==e]
+                    fts = value
+                idxs = [idx for idx, e in enumerate(
+                    infodata[timestamp]) if infostr == e]
                 for idx in idxs:
-                    lnidx=idx
-                    outfile=('%s.%s'%(fts,mission_id))
-                    i=1
+                    lnidx = idx
+                    outfile = ('%s.%s' % (fts, mission_id))
+                    i = 1
                     while os.path.isfile(outfile):
                         if os.path.isfile(outfile):
-                            outfile=('%s.%s.%s'%(fts,mission_id,i))
-                            i=i+1
-                    tdkwargs={'outfile':outfile,'infostr':infostr,'data':\
-                        infodata[timestamp],'lnidx':lnidx}
+                            outfile = ('%s.%s.%s' % (fts, mission_id, i))
+                            i = i+1
+                    tdkwargs = {'outfile': outfile, 'infostr': infostr, 'data':
+                                infodata[timestamp], 'lnidx': lnidx}
                     self.write_tempdrop(**tdkwargs)
                     self.tempdrop_list.append(outfile)
-    def stripmeta(self,instr):
+
+    def stripmeta(self, instr):
         """
         DESCRIPTION:
 
@@ -444,12 +460,13 @@ class FormatSonde(object):
 
         """
         for c in (string.ascii_lowercase+string.ascii_uppercase):
-            chkstr='^%s'%c
-            outstr=instr.replace(chkstr,'')
-            instr=outstr
-        outstr=outstr.replace('\r','')
+            chkstr = '^%s' % c
+            outstr = instr.replace(chkstr, '')
+            instr = outstr
+        outstr = outstr.replace('\r', '')
         return outstr
-    def write_tempdrop(self,outfile,infostr,data,lnidx):
+
+    def write_tempdrop(self, outfile, infostr, data, lnidx):
         """
         DESCRIPTION:
 
@@ -468,22 +485,23 @@ class FormatSonde(object):
           the infostr information.
 
         """
-        strtmsg=lnidx
-        for (i,item) in enumerate(data[strtmsg::],1):
+        strtmsg = lnidx
+        for (i, item) in enumerate(data[strtmsg::], 1):
             if ';' in item:
-                lnidx=i
+                lnidx = i
                 break
             if not item.strip():
-                lnidx=i
+                lnidx = i
                 break
-        endmsg=strtmsg+lnidx
-        msg=('Writing TEMP-DROP message to %s; data block: [%s,%s]' %\
-            (outfile,strtmsg,endmsg))
+        endmsg = strtmsg+lnidx
+        msg = ('Writing TEMP-DROP message to %s; data block: [%s,%s]' %
+               (outfile, strtmsg, endmsg))
         self.logger.info(msg=msg)
-        with open(outfile,'wt+') as f:
+        with open(outfile, 'wt+') as f:
             for item in data[strtmsg:endmsg]:
-                item=self.stripmeta(instr=item)
-                f.write('%s\n'%item)
+                item = self.stripmeta(instr=item)
+                f.write('%s\n' % item)
+
     def run(self):
         """
         DESCRIPTION:
@@ -505,7 +523,8 @@ class FormatSonde(object):
         self.formatsondes()
         self.createfilelist()
 
-#----
+# ----
+
 
 class FormatSondeError(Exception):
     """
@@ -518,16 +537,18 @@ class FormatSondeError(Exception):
     * msg; a Python string to accompany the raised exception.
 
     """
-    def __init__(self,msg):
+
+    def __init__(self, msg):
         """
         DESCRIPTION:
 
         Creates a new FormatSondeError object.
 
         """
-        super(FormatSondeError,self).__init__(msg)
+        super(FormatSondeError, self).__init__(msg)
 
-#----
+# ----
+
 
 class FormatSondeLog(object):
     """
@@ -536,6 +557,7 @@ class FormatSondeLog(object):
     This is the base-class object for all Log instances.
 
     """
+
     def __init__(self):
         """
         DESCRIPTION:
@@ -543,8 +565,9 @@ class FormatSondeLog(object):
         Creates a new Log object.
 
         """
-        self.exception=FormatSondeError
-    def info(self,msg):
+        self.exception = FormatSondeError
+
+    def info(self, msg):
         """
         DESCRIPTION:
 
@@ -557,9 +580,10 @@ class FormatSondeLog(object):
           message.
 
         """
-        self.log=self.setup(info=True)
+        self.log = self.setup(info=True)
         self.log.info(msg)
-    def setup(self,info=False):
+
+    def setup(self, info=False):
         """
         DESCRIPTION:
 
@@ -572,17 +596,18 @@ class FormatSondeLog(object):
 
         """
         if info:
-            format='%(levelname)s :: %(asctime)s : %(message)s'
+            format = '%(levelname)s :: %(asctime)s : %(message)s'
         if not info:
-            format='%(levelname)s :: %(asctime)s : %(pathname)s (%(lineno)s)'\
+            format = '%(levelname)s :: %(asctime)s : %(pathname)s (%(lineno)s)'\
                 '; %(message)s'
-        datefmt='%Y-%m-%d %H:%M:%S'
-        log=logging
-        log.basicConfig(stream=sys.stdout,level=logging.INFO,format=format,\
-            datefmt=datefmt)
+        datefmt = '%Y-%m-%d %H:%M:%S'
+        log = logging
+        log.basicConfig(stream=sys.stdout, level=logging.INFO, format=format,
+                        datefmt=datefmt)
         return log
 
-#----
+# ----
+
 
 class FormatSondeOptions(object):
     """
@@ -592,6 +617,7 @@ class FormatSondeOptions(object):
     arguments provided by the user.
 
     """
+
     def __init__(self):
         """
         DESCRIPTION:
@@ -599,12 +625,13 @@ class FormatSondeOptions(object):
         Creates a new FormatSondeOptions object.
 
         """
-        self.parser=argparse.ArgumentParser()
-        self.parser.add_argument('-c','--cycle',help='The forecast cycle timestamp; '\
-            'formatted as (assuming UNIX convention) %Y-%m-%d_%H:%M:%S.',default=None)
-        self.parser.add_argument('-d','--datapath',help='The path to the sonde files '\
-            'containing TEMP-DROP observations.',default=None)
-        self.opts_obj=lambda:None
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('-c', '--cycle', help='The forecast cycle timestamp; '
+                                 'formatted as (assuming UNIX convention) %Y-%m-%d_%H:%M:%S.', default=None)
+        self.parser.add_argument('-d', '--datapath', help='The path to the sonde files '
+                                 'containing TEMP-DROP observations.', default=None)
+        self.opts_obj = lambda: None
+
     def run(self):
         """
         DESCRIPTION:
@@ -625,19 +652,20 @@ class FormatSondeOptions(object):
           options.
 
         """
-        opts_obj=self.opts_obj
-        args_list=['cycle','datapath']
-        args=self.parser.parse_args()
+        opts_obj = self.opts_obj
+        args_list = ['cycle', 'datapath']
+        args = self.parser.parse_args()
         for item in args_list:
-            value=getattr(args,item)
+            value = getattr(args, item)
             if value is None:
-                msg=('The argument %s cannot be NoneType. Aborting!!!'%item)
+                msg = ('The argument %s cannot be NoneType. Aborting!!!' % item)
                 raise FormatSondeError(msg=msg)
             else:
-                setattr(opts_obj,item,value)
+                setattr(opts_obj, item, value)
         return opts_obj
 
-#----
+# ----
+
 
 def main():
     """ 
@@ -647,12 +675,13 @@ def main():
     script.
 
     """
-    options=FormatSondeOptions()
-    opts_obj=options.run()
-    formatsonde=FormatSonde(opts_obj=opts_obj)
+    options = FormatSondeOptions()
+    opts_obj = options.run()
+    formatsonde = FormatSonde(opts_obj=opts_obj)
     formatsonde.run()
 
-#----
+# ----
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()
