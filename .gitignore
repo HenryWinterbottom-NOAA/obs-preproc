@@ -7,3 +7,4 @@ data/
 *.o
 log.*.exe
 data
+*.pyc
