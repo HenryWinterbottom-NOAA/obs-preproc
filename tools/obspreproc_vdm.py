@@ -25,7 +25,6 @@
 # ----
 
 import argparse
-import pyproj
 import os
 
 import util as hafsutil
@@ -68,7 +67,15 @@ class VortexDataMessage(object):
         datestr=hafsutil.date_interface.datestrfrmt(**kwargs)
         return datestr
     def get_fixlocations(self):
-        """ """
+        """
+        DESCRIPTION:
+
+        This method defines the fix geographical location (e.g.,
+        latitude and longitude coordinates) and assigns values to the
+        base-class attribute fix_lat and fix_lon within the base-class
+        Pythong dictionary vdm_dict.
+
+        """
         locinfo_dict={'lat':1,'hemis_sn':3,'lon':4,'hemis_we':6}
         for key in self.vdm_dict.keys():
             filename=self.vdm_dict[key]['filename']
@@ -80,7 +87,6 @@ class VortexDataMessage(object):
                     for locinfo_key in locinfo_dict.keys():
                         value=item.split()[locinfo_dict[locinfo_key]]
                         setattr(loc_obj,locinfo_key,value)
-                    print(getattr(loc_obj,'hemis_we'))
                     if getattr(loc_obj,'hemis_sn').lower()=='s':
                         hemis_sn_scale=-1.0
                     else:
@@ -160,6 +166,57 @@ class VortexDataMessage(object):
         kwargs={'datestr':datestr}
         datecomps=hafsutil.date_interface.datestrcomps(**kwargs)
         self.julian_stop=getattr(datecomps,'julian_day')
+    def get_flwinds(self):
+        """ """
+        timestamp_items=['year','month','day']
+        flwind_items=['bearing','distance','obstime','plev','wdir','wspd']
+        for key in self.vdm_dict.keys():
+            timestamp_obj=lambda:None
+            self.vdm_dict[key]['flwinds']=dict()
+            for item in flwind_items:
+                self.vdm_dict[key]['flwinds'][item]=list()
+            timestamp=self.vdm_dict[key]['fix_timestamp']
+            kwargs={'datestr':timestamp}
+            timestamp_datecomps=hafsutil.date_interface.datestrcomps(**kwargs)
+            for item in timestamp_items:
+                setattr(timestamp_obj,item,getattr(timestamp_datecomps,item))
+            filename=self.vdm_dict[key]['filename']
+            kwargs={'filename':filename}
+            vdm_data=self.read_vdm(**kwargs)
+            for item in vdm_data:
+                if 'C.' in item:
+                    plev=float(item.split()[1])*100.0
+                if 'J.' in item:
+                    wdir=float(item.split()[1])
+                    wspd=float(item.split()[3])*0.51444
+                if 'K.' in item:
+                    bearing=float(item.split()[1])
+                    distance=float(item.split()[3])*1852.0
+                    obstime=item.split()[5]
+                    datestr=('%s-%s-%s_%s')%(timestamp_obj.year,\
+                        timestamp_obj.month,timestamp_obj.day,obstime)
+                    kwargs={'datestr':datestr,'in_frmttyp':'%Y-%m-%d_%H:%M:%SZ',\
+                            'out_frmttyp':'%Y-%m-%d_%H:%M:%S'}
+                    obstime=hafsutil.date_interface.datestrfrmt(**kwargs)
+            for item in flwind_items:
+                self.vdm_dict[key]['flwinds'][item].append(eval(item))
+            for item in vdm_data:
+                if 'C.' in item:
+                    plev=float(item.split()[1])*100.0
+                if 'N.' in item:
+                    wdir=float(item.split()[1])
+                    wspd=float(item.split()[3])*0.51444
+                if 'O.' in item:
+                    bearing=float(item.split()[1])
+                    distance=float(item.split()[3])*1852.0
+                    obstime=item.split()[5]
+                    datestr=('%s-%s-%s_%s')%(timestamp_obj.year,\
+                        timestamp_obj.month,timestamp_obj.day,obstime)
+                    kwargs={'datestr':datestr,'in_frmttyp':'%Y-%m-%d_%H:%M:%SZ',\
+                            'out_frmttyp':'%Y-%m-%d_%H:%M:%S'}
+                    obstime=hafsutil.date_interface.datestrfrmt(**kwargs)
+            for item in flwind_items:
+                self.vdm_dict[key]['flwinds'][item].append(eval(item))
     def get_vdmfiles(self):
         """
         DESCRIPTION:
@@ -214,10 +271,8 @@ class VortexDataMessage(object):
         self.get_vdmfiles()
         self.get_fixtimes()
         self.get_fixlocations()
-        #print(self.vdm_dict)
-        #self.get_filetimeinfo()
-        #self.get_fixtimeinfo()
-        #self.get_fixgeo()
+        self.get_flwinds()
+        return self.vdm_dict
 
 #----
 
@@ -228,33 +283,33 @@ class ObsPreProcVDM(object):
         self.opts_obj=opts_obj
         kwargs={'opts_obj':self.opts_obj}
         self.vdm=VortexDataMessage(**kwargs)
-        self.vdm.run()
     def format_vdm(self):
         """ """
-        datapath=getattr(self.opts_obj,'datapath')
-        kwargs={'datapath':datapath}
-        vdm=VortexDataMessage(**kwargs)
-        vdm.run()
-        
-        #self.vdm_dict=dict()
-        #filenames=os.listdir(datapath)
-        #for filename in filenames:
-        #    kwargs={'filename':os.path.join(datapath,filename)}
-        #    vdm=VortexDataMessage(**kwargs)
-        #    self.vdm_dict[filename]=vdm.run()
-
-    def parse_vdm(self,filename):
+        self.vdm_dict=self.vdm.run()
+    def write_vdm(self):
         """ """
-        vdm_dict=dict()
-        with open(filename,'rt') as f:
-            data=f.read()
-        for item in data.splitlines():
-            print(item)
-        
+        fix_info=('{0} {1} {2}\n')
+        flwind_info=('{0} {1} {2} {3} {4} {5}\n')
+        for key in self.vdm_dict.keys():
+            filename=os.path.basename(self.vdm_dict[key]['filename'])
+            fix_lat=self.vdm_dict[key]['fix_lat']
+            fix_lon=self.vdm_dict[key]['fix_lon']
+            fix_timestamp=self.vdm_dict[key]['fix_timestamp']
+            with open(filename,'wt') as f:
+                f.write(fix_info.format(fix_timestamp,fix_lat,fix_lon))
+                for i in range(len(self.vdm_dict[key]['flwinds']['obstime'])):
+                    bearing=self.vdm_dict[key]['flwinds']['bearing'][i]
+                    distance=self.vdm_dict[key]['flwinds']['distance'][i]
+                    obstime=self.vdm_dict[key]['flwinds']['obstime'][i]
+                    plev=self.vdm_dict[key]['flwinds']['plev'][i]
+                    wdir=self.vdm_dict[key]['flwinds']['wdir'][i]
+                    wspd=self.vdm_dict[key]['flwinds']['wspd'][i]
+                    f.write(flwind_info.format(obstime,plev,distance,bearing,wdir,wspd))
     def run(self):
         """ """
-#        self.format_vdm()
-
+        self.format_vdm()
+        self.write_vdm()
+        
 # ----
 
 class ObsPreProcVDMError(Exception):
