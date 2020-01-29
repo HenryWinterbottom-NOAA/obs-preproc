@@ -49,6 +49,7 @@ module fileio_interface
      module procedure read_hsa
      module procedure read_sonde_filenames
      module procedure read_tcinfo
+     module procedure read_vdm
   end interface fileio_interface_read
   interface fileio_interface_varinfo
      module procedure varinfo_sonde_meteo
@@ -1019,6 +1020,130 @@ contains
     !=====================================================================
 
   end subroutine read_tcinfo
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! read_vdm.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine ingests formatted vortex data message (VDM) files
+  ! and populates the FORTRAN vdm_struct variable arrays.
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the
+
+  ! * vdm; a FORTRAN vdm_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * vdm; a FORTRAN vdm_struct variable now containing the vortex
+  !   data message (VDM) attributes retrieved from the user specified
+  !   files.
+
+  !-----------------------------------------------------------------------
+
+  subroutine read_vdm(filename,vdm)
+
+    ! Define variables passed to routine
+
+    type(vdm_struct)                                                    :: vdm
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=500)                                                  :: vdm_filename
+    character(len=1)                                                    :: dummy
+    integer                                                             :: nobs
+    
+    ! Define counting variables
+
+    integer                                                             :: i, j
+
+    !=====================================================================
+
+    ! Define local variables
+
+    vdm%nvdm = 0
+    vdm%nobs = 0
+    open(99,file=trim(adjustl(filename)),form='formatted')
+1000 read(99,*,end=1003) vdm_filename
+    vdm%nvdm = vdm%nvdm + 1
+    nobs = 0
+    open(98,file=trim(adjustl(vdm_filename)),form='formatted')
+1001 read(98,*,end=1002) dummy
+    nobs = nobs + 1
+    goto 1001
+1002 continue
+    vdm%nobs = max(vdm%nobs,(nobs - 1))
+    goto 1000
+1003 continue
+    close(99)
+    call variable_interface_setup_struct(vdm)
+    open(99,file=trim(adjustl(filename)),form='formatted')
+
+    ! Check local variable and proceed accordingly
+
+    if(debug) write(6,'(/)')
+    
+    ! Loop through local variable
+
+    do i = 1, size(vdm%filename)
+
+       ! Define local variables
+
+       read(99,*) vdm%filename(i)
+
+       ! Check local variable and proceed accordingly
+       
+       if(debug) write(6,500) trim(adjustl(vdm%filename(i)))
+       
+    end do ! do i = 1, size(vdm%filename)
+
+    ! Check local variable and proceed accordingly
+
+    if(debug) write(6,'(/)')
+
+    ! Define local variables
+
+    close(99)
+
+    ! Loop through local variable
+
+    do i = 1, size(vdm%filename)
+
+       ! Define local variables
+
+       open(99,file=trim(adjustl(vdm%filename(i))),form='formatted')
+       read(99,*) vdm%fix_time(i), vdm%fix_lat(i), vdm%fix_lon(i)
+
+       ! Loop through local variable
+
+       do j = 1, vdm%nobs
+
+          ! Define local variables
+
+          read(99,*,end=1004) vdm%obs_time(i,j), vdm%obs_plev(i,j),       &
+               & vdm%obs_dist(i,j), vdm%obs_head(i,j), vdm%obs_wdir(i,j), &
+               & vdm%obs_wspd(i,j)
+          
+       end do ! do j = 1, vdm%nobs
+
+       ! Define local variables
+
+1004   continue
+       close(99)
+       
+    end do ! do i = 1, size(vdm%filename)
+    
+500 format('READ_VDM: Found vortex data message file ', a,'.')
+
+    !=====================================================================
+
+  end subroutine read_vdm
 
   !=======================================================================
 

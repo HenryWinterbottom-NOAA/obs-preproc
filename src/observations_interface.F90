@@ -34,6 +34,7 @@ module observations_interface
   use forecast_model_interface
   use kinds_interface
   use namelist_interface
+  use recon_vdm_interface
   use sonde_tempdrop_interface
 
   ! Define interfaces and attributes for module routines
@@ -66,6 +67,7 @@ contains
     ! Check local variable and proceed accordingly
 
     if(is_fcst_model) call obs_fcst_model()
+    if(is_recon)      call obs_recon()
     if(is_sonde)      call obs_sonde()
     
     !=====================================================================
@@ -99,6 +101,34 @@ contains
     !=====================================================================
 
   end subroutine obs_fcst_model
+
+    !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! obs_recon.f90
+
+  ! DESCRIPTION:
+
+  ! This is the driver routine for the preparation of all observations
+  ! collected from reconnissance messages; currently the following
+  ! platforms are supported:
+
+  ! + National Hurricane Center (NHC) Vortex Data Messages (VDM).
+
+  !-----------------------------------------------------------------------
+
+  subroutine obs_recon()
+
+    !=====================================================================
+
+    ! Check local variable and proceed accordingly
+
+    if(is_recon_vdm) call recon_vdm()
+    
+    !=====================================================================
+
+  end subroutine obs_recon
 
   !=======================================================================
 

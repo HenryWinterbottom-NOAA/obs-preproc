@@ -220,6 +220,8 @@ module namelist_interface
   character(len=500)                                                    :: &
        & fv3_static_filename = 'NOT USED'
   character(len=500)                                                    :: &
+       & recon_filelist = 'NOT USED' ! NEED
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
        & tcinfo_filename = 'NOT USED'
@@ -235,6 +237,10 @@ module namelist_interface
        & is_fv3 = .false.
   logical                                                               :: &
        & is_global = .false.
+  logical                                                               :: &
+       & is_recon = .false. ! NEED  
+  logical                                                               :: &
+       & is_recon_vdm = .false. ! NEED
   logical                                                               :: &
        & is_regional = .false.
   logical                                                               :: &
@@ -260,12 +266,13 @@ module namelist_interface
   real(r_kind)                                                          :: &
        & tc_radius = 600000.0
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
-       & is_sonde
+       & is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
        & mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
        & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
        & is_regional, is_rotate_winds, sample_radius
+  namelist /recon/      is_recon_vdm, recon_filelist
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
@@ -323,6 +330,7 @@ contains
        read(unit_nml,NML = share)
        read(unit_nml,NML = bufrio)
        read(unit_nml,NML = fcst_mdl)
+       read(unit_nml,NML = recon)
        read(unit_nml,NML = sonde)
        read(unit_nml,NML = tc)
        close(unit_nml)
