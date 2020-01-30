@@ -161,7 +161,7 @@ class ObsPreProcVDM(object):
         C: a Python float valued variable specifying the fix location
            longitude coordinate (degrees East).
 
-        Lines 2-3: <A> <B> <C> <D> <E> <F>
+        Lines 2-3: <A> <B> <C> <D> <E> <F> <G>
 
         A: a Python character string specifying the flight-level wind
            observation timestamp.
@@ -169,23 +169,26 @@ class ObsPreProcVDM(object):
         B: a Python float valued variable specifying the isobaric
            elevation for the observation (Pascals).
 
-        C: a Python float valued variable specifying the distance,
+        C: a Python float valued variable specifying the minimum
+           elevation of the isobaric level (m).
+
+        D: a Python float valued variable specifying the distance,
            relative to the fix location, for the flight-level
            observations (meters).
 
-        D: a Python float valued variable specifying the bearing,
+        E: a Python float valued variable specifying the bearing,
            relative to the fix location, for the flight-level
            observations (degrees).
 
-        E: a Python float valued variable specifying the wind
+        F: a Python float valued variable specifying the wind
            direction observation (degrees).
 
-        F: a Python float valued variable specifying the wind speed
+        G: a Python float valued variable specifying the wind speed
            observation (meters per second).
 
         """
         fix_info = ('{0} {1} {2}\n')
-        flwind_info = ('{0} {1} {2} {3} {4} {5}\n')
+        flwind_info = ('{0} {1} {2} {3} {4} {5} {6}\n')
         for key in self.vdm_dict.keys():
             filename = os.path.basename(self.vdm_dict[key]['filename'])
             fix_lat = self.vdm_dict[key]['fix_lat']
@@ -193,15 +196,20 @@ class ObsPreProcVDM(object):
             fix_timestamp = self.vdm_dict[key]['fix_timestamp']
             with open(filename, 'wt') as f:
                 f.write(fix_info.format(fix_timestamp, fix_lat, fix_lon))
+                lines_seen = set()
                 for i in range(len(self.vdm_dict[key]['flwinds']['obstime'])):
+                    alt = self.vdm_dict[key]['flwinds']['alt'][i]
                     bearing = self.vdm_dict[key]['flwinds']['bearing'][i]
                     distance = self.vdm_dict[key]['flwinds']['distance'][i]
                     obstime = self.vdm_dict[key]['flwinds']['obstime'][i]
                     plev = self.vdm_dict[key]['flwinds']['plev'][i]
                     wdir = self.vdm_dict[key]['flwinds']['wdir'][i]
                     wspd = self.vdm_dict[key]['flwinds']['wspd'][i]
-                    f.write(flwind_info.format(obstime, plev,
-                                               distance, bearing, wdir, wspd))
+                    line = flwind_info.format(
+                        obstime, plev, alt, distance, bearing, wdir, wspd)
+                    if line not in lines_seen:
+                        f.write(line)
+                        lines_seen.add(line)
 
     def run(self):
         """
@@ -267,12 +275,13 @@ class ObsPreProcVDMOptions(object):
         self.parser = argparse.ArgumentParser()
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('-c', '--cycle', help='The forecast cycle timestamp; '
-                                 'formatted as (assuming UNIX convention) %Y-%m-%d_%H:%M:%S.', default=None)
+                                 'formatted as (assuming UNIX convention) %Y-%m-%d_%H:%M:%S.',
+                                 default=None)
         self.parser.add_argument('-d', '--datapath', help='The path to the vortex data message '
                                  '(VDM) file(s).', default=None)
-        self.parser.add_argument('-w', '--window', help='The temporal
-                                 interval, centered on the forecast cycle, for which to
-                                 collect vortex data message(s).', default=10800)
+        self.parser.add_argument('-w', '--window', help='The temporal interval, centered on '
+                                 'the forecast cycle, for which to collect vortex data message(s).',
+                                 default=10800)
         self.opts_obj = lambda: None
 
     def run(self):
@@ -473,7 +482,7 @@ class VortexDataMessage(object):
 
         """
         timestamp_items = ['year', 'month', 'day']
-        flwind_items = ['bearing', 'distance',
+        flwind_items = ['alt', 'bearing', 'distance',
                         'obstime', 'plev', 'wdir', 'wspd']
         for key in self.vdm_dict.keys():
             def timestamp_obj(): return None
@@ -493,6 +502,7 @@ class VortexDataMessage(object):
             for item in vdm_data:
                 if 'C.' in item:
                     plev = float(item.split()[1])*100.0
+                    alt = float(item.split()[3])
                 if 'J.' in item:
                     wdir = float(item.split()[1])
                     wspd = float(item.split()[3])*0.51444
@@ -510,10 +520,15 @@ class VortexDataMessage(object):
             for item in vdm_data:
                 if 'C.' in item:
                     plev = float(item.split()[1])*100.0
+                    alt = float(item.split()[3])
                 if 'N.' in item:
+                    if 'NA' in item:
+                        break
                     wdir = float(item.split()[1])
                     wspd = float(item.split()[3])*0.51444
                 if 'O.' in item:
+                    if 'NA' in item:
+                        break
                     bearing = float(item.split()[1])
                     distance = float(item.split()[3])*1852.0
                     obstime = item.split()[5]
