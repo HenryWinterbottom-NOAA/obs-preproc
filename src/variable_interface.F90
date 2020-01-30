@@ -305,6 +305,7 @@ module variable_interface
      character(len=19),         dimension(:,:),             allocatable :: obs_time
      character(len=500),        dimension(:),               allocatable :: filename
      character(len=19),         dimension(:),               allocatable :: fix_time
+     real(r_kind),              dimension(:,:),             allocatable :: obs_alt
      real(r_kind),              dimension(:,:),             allocatable :: obs_dist
      real(r_kind),              dimension(:,:),             allocatable :: obs_head
      real(r_kind),              dimension(:,:),             allocatable :: obs_lat
@@ -851,6 +852,7 @@ contains
     if(allocated(grid%fix_lat))  deallocate(grid%fix_lat)
     if(allocated(grid%fix_lon))  deallocate(grid%fix_lon)
     if(allocated(grid%fix_time)) deallocate(grid%fix_time)    
+    if(allocated(grid%obs_alt))  deallocate(grid%obs_alt)
     if(allocated(grid%obs_dist)) deallocate(grid%obs_dist)
     if(allocated(grid%obs_head)) deallocate(grid%obs_head)
     if(allocated(grid%obs_lat))  deallocate(grid%obs_lat)
@@ -1529,6 +1531,8 @@ contains
 
     ! Allocate memory for local variables
 
+    if(.not. allocated(grid%obs_alt))                                      &
+         & allocate(grid%obs_alt(grid%nvdm,grid%nobs))  
     if(.not. allocated(grid%obs_dist))                                     &
          & allocate(grid%obs_dist(grid%nvdm,grid%nobs))
     if(.not. allocated(grid%obs_head))                                     &
@@ -1537,7 +1541,7 @@ contains
          & allocate(grid%obs_lat(grid%nvdm,grid%nobs))
     if(.not. allocated(grid%obs_lon))                                      &
          & allocate(grid%obs_lon(grid%nvdm,grid%nobs))
-    if(.not. allocated(grid%obs_plev))                                      &
+    if(.not. allocated(grid%obs_plev))                                     &
          & allocate(grid%obs_plev(grid%nvdm,grid%nobs))
     if(.not. allocated(grid%obs_time))                                     &
          & allocate(grid%obs_time(grid%nvdm,grid%nobs))

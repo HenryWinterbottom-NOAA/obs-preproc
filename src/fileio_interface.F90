@@ -1127,8 +1127,8 @@ contains
           ! Define local variables
 
           read(99,*,end=1004) vdm%obs_time(i,j), vdm%obs_plev(i,j),       &
-               & vdm%obs_dist(i,j), vdm%obs_head(i,j), vdm%obs_wdir(i,j), &
-               & vdm%obs_wspd(i,j)
+               & vdm%obs_alt(i,j), vdm%obs_dist(i,j), vdm%obs_head(i,j),  &
+               & vdm%obs_wdir(i,j), vdm%obs_wspd(i,j)
           
        end do ! do j = 1, vdm%nobs
 

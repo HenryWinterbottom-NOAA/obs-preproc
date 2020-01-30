@@ -12,7 +12,6 @@ FCFFLAGS      = -O3 -fp-model precise -assume byterecl -convert big_endian $(DEB
 
 # Compile time libraries.
 
-NWP_WMS_UTILS = /Users/henry.winterbottom/software/nwp-libs
 BUFR          = /Users/henry.winterbottom/software/nwp-libs
 FSON          = /Users/henry.winterbottom/software/nwp-libs
 GRIDPROJS     = /Users/henry.winterbottom/software/nwp-libs
@@ -21,3 +20,4 @@ NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran-4.4.5
 SLATEC        = /Users/henry.winterbottom/software/nwp-libs
 SONDELIB      = /Users/henry.winterbottom/software/nwp-libs
 SPLINE        = /Users/henry.winterbottom/software/nwp-libs
+WMM           = /Users/henry.winterbottom/software/nwp-libs
