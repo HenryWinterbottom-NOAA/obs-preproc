@@ -31,14 +31,18 @@ AUTHOR:
 
 ABSTRACT:
 
-   (1) SondeArchive: This is the base-class object for creating the
+   (1) FormatSonde: This is the base-class object to format TEMP-DROP
+       messages (observations) in accordance with the expectations of
+       the tempdrop_sonde executable.
+
+   (2) SondeArchive: This is the base-class object for creating the
        AOML/HRD TEMP-DROP formatted observation archives as function
        of the user specified times.
 
-   (2) SondeArchiveError: This is the base-class for all module raised
+   (3) SondeArchiveError: This is the base-class for all module raised
        exceptions; it is a sub-class of Exception.
 
-   (3) SondeArchiveOptions: This is the base-class object used to
+   (4) SondeArchiveOptions: This is the base-class object used to
        collect command line arguments provided by the user.
 
    * main; This is the driver-level method to invoke the tasks within
@@ -62,6 +66,7 @@ import argparse
 import contextlib
 import logging
 import os
+import string
 import sys
 import tarfile
 if sys.version_info >= (3, 0, 0):
@@ -72,6 +77,111 @@ else:
 
 # ----
 
+class FormatSonde(object):
+    """ 
+    DESCRIPTION:
+
+    This is the base-class object to format TEMP-DROP messages
+    (observations) in accordance with the expectations of the
+    tempdrop_sonde executable.
+
+    """
+
+    def __init__(self):
+        """ 
+        DESCRIPTION:
+
+        Creates a new FormatSonde object.
+
+        """
+
+    def formatsondes(self, input_file_dict):
+        """
+        DESCRIPTION:
+
+        This method formats TEMP-DROP messages (observations) in
+        accordance with the expectations of the tempdrop_sonde
+        executable.
+
+        INPUT VARIABLES:
+
+        * input_file_dict; a Python dictionary containing key and
+          value pairs for the Julian date and corresponding TEMP-DROP
+          message file.
+
+        OUTPUT VARIABLES:
+
+        * output_file_dict; a Python dictionary containing key and
+          value pairs for the Julian date and the corresponding
+          modified TEMP-DROP message file.
+
+        """
+        input_files = input_file_dict.values()
+        output_file_dict = dict()
+        for key in input_file_dict.keys():
+            srchstrs = ['REL', 'SPG', 'SPL']
+            excldstrs = ['62626', 'REL', 'SPG', 'SPL']
+            for infile in input_files:
+                if os.path.exists(infile):
+                    with open(infile, 'rb') as inf:
+                        data = inf.read()
+                    outfile = ('%s.mod' % infile)
+                    datan = list()
+                    data.replace('\r', '')
+                    data = data.split('\n')
+                    data = filter(None, data)
+                    for item in data:
+                        item = self.stripmeta(instr=item)
+                        datan.append(item)
+                    data = datan
+                    with open(outfile, 'w') as outf:
+                        for item in data:
+                            if any(s in item for s in excldstrs):
+                                pass
+                            else:
+                                outf.write('%s\n' % item)
+                        outdata = list()
+                        for (i, item) in enumerate(data):
+                            for srchstr in srchstrs:
+                                if srchstr in item:
+                                    try:
+                                        nstr = data[i]+data[i+1]
+                                        nstr = self.stripmeta(instr=nstr)
+                                        indx = nstr.index(srchstr)
+                                        sstr = nstr[indx:indx+23]
+                                        sstr = self.stripmeta(instr=sstr)
+                                        outf.write('%s\n' % sstr)
+                                    except IndexError:
+                                        pass
+                    output_file_dict[key] = outfile
+        return output_file_dict
+
+    def stripmeta(self, instr):
+        """
+        DESCRIPTION:
+
+        This method stripts meta-characters and carriage returns from
+        an input string.  
+
+        INPUT VARIABLES:
+
+        * instr; a Python string possibly containing meta-characters.
+
+        OUTPUT VARIABLES:
+
+        * outstr; a Python string stripped of meta-characters and
+          carriage returns.
+
+        """
+        for c in (string.ascii_lowercase+string.ascii_uppercase):
+            chkstr = '^%s' % c
+            outstr = instr.replace(chkstr, '')
+            instr = outstr
+        outstr = outstr.replace('\r', '')
+        return outstr
+
+
+# ----
 
 class SondeArchive(object):
     """
@@ -98,6 +208,7 @@ class SondeArchive(object):
         self.opts_obj = opts_obj
         self.config = ConfigParser.ConfigParser()
         self.config.optionxform = str
+        self.format_sonde = FormatSonde()
         self.logger = SondeArchiveLog()
 
     def archive_times(self):
@@ -162,7 +273,9 @@ class SondeArchive(object):
             julian_stop = date_comps_obj.julian_day
             kwargs = {'julian_start': julian_start, 'julian_stop': julian_stop}
             input_file_dict = self.filter_input_files(**kwargs)
-            kwargs = {'input_file_dict': input_file_dict,
+            kwargs = {'input_file_dict': input_file_dict}
+            output_file_dict = self.format_sonde.formatsondes(**kwargs)
+            kwargs = {'input_file_dict': output_file_dict,
                       'archive_time': archive_time}
             self.create_tarball(**kwargs)
 
@@ -251,14 +364,17 @@ class SondeArchive(object):
             raise SondeArchiveError(msg=msg)
         self.input_file_dict = dict()
         for filename in filenames:
-            timestamp = filename.split('.')[0]
-            kwargs = {'datestr': timestamp, 'in_frmttyp': '%Y%m%d%H%M',
-                      'out_frmttyp': '%Y-%m-%d_%H:%M:%S'}
-            datestr = util.date_interface.datestrfrmt(**kwargs)
-            kwargs = {'datestr': datestr}
-            date_comps_obj = util.date_interface.datestrcomps(**kwargs)
-            self.input_file_dict[date_comps_obj.julian_day] =\
-                os.path.join(input_path, filename)
+            try:
+                timestamp = filename.split('.')[0]
+                kwargs = {'datestr': timestamp, 'in_frmttyp': '%Y%m%d%H%M',
+                          'out_frmttyp': '%Y-%m-%d_%H:%M:%S'}
+                datestr = util.date_interface.datestrfrmt(**kwargs)
+                kwargs = {'datestr': datestr}
+                date_comps_obj = util.date_interface.datestrcomps(**kwargs)
+                self.input_file_dict[date_comps_obj.julian_day] =\
+                    os.path.join(input_path, filename)
+            except Exception:
+                pass
 
     def read_conf(self):
         """
