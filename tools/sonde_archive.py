@@ -94,7 +94,7 @@ class FormatSonde(object):
         Creates a new FormatSonde object.
 
         """
-
+        
     def formatsondes(self, input_file_dict):
         """
         DESCRIPTION:
@@ -117,44 +117,43 @@ class FormatSonde(object):
 
         """
         input_files = input_file_dict.values()
-        output_file_dict = dict()
-        for key in input_file_dict.keys():
-            srchstrs = ['REL', 'SPG', 'SPL']
-            excldstrs = ['62626', 'REL', 'SPG', 'SPL']
-            for infile in input_files:
-                if os.path.exists(infile):
-                    with open(infile, 'rb') as inf:
-                        data = inf.read()
-                    outfile = ('%s.mod' % infile)
-                    datan = list()
-                    data.replace('\r', '')
-                    data = data.split('\n')
-                    data = filter(None, data)
+        output_files = list()
+        srchstrs = ['REL', 'SPG', 'SPL']
+        excldstrs = ['62626', 'REL', 'SPG', 'SPL']
+        for infile in input_files:
+            if os.path.exists(infile):
+                with open(infile, 'rb') as inf:
+                    data = inf.read()
+                outfile = ('%s.mod' % infile)
+                datan = list()
+                data.replace('\r', '')
+                data = data.split('\n')
+                data = filter(None, data)
+                for item in data:
+                    item = self.stripmeta(instr=item)
+                    datan.append(item)
+                data = datan
+                with open(outfile, 'w') as outf:
                     for item in data:
-                        item = self.stripmeta(instr=item)
-                        datan.append(item)
-                    data = datan
-                    with open(outfile, 'w') as outf:
-                        for item in data:
-                            if any(s in item for s in excldstrs):
-                                pass
-                            else:
-                                outf.write('%s\n' % item)
-                        outdata = list()
-                        for (i, item) in enumerate(data):
-                            for srchstr in srchstrs:
-                                if srchstr in item:
-                                    try:
-                                        nstr = data[i]+data[i+1]
-                                        nstr = self.stripmeta(instr=nstr)
-                                        indx = nstr.index(srchstr)
-                                        sstr = nstr[indx:indx+23]
-                                        sstr = self.stripmeta(instr=sstr)
-                                        outf.write('%s\n' % sstr)
-                                    except IndexError:
-                                        pass
-                    output_file_dict[key] = outfile
-        return output_file_dict
+                        if any(s in item for s in excldstrs):
+                            pass
+                        else:
+                            outf.write('%s\n' % item)
+                    outdata = list()
+                    for (i, item) in enumerate(data):
+                        for srchstr in srchstrs:
+                            if srchstr in item:
+                                try:
+                                    nstr = data[i]+data[i+1]
+                                    nstr = self.stripmeta(instr=nstr)
+                                    indx = nstr.index(srchstr)
+                                    sstr = nstr[indx:indx+23]
+                                    sstr = self.stripmeta(instr=sstr)
+                                    outf.write('%s\n' % sstr)
+                                except IndexError:
+                                    pass
+                output_files.append(outfile)
+        return output_files
 
     def stripmeta(self, instr):
         """
@@ -208,9 +207,9 @@ class SondeArchive(object):
         self.opts_obj = opts_obj
         self.config = ConfigParser.ConfigParser()
         self.config.optionxform = str
-        self.format_sonde = FormatSonde()
         self.logger = SondeArchiveLog()
-
+        self.format_sonde = FormatSonde()
+        
     def archive_times(self):
         """
         DESCRIPTION:
@@ -274,12 +273,11 @@ class SondeArchive(object):
             kwargs = {'julian_start': julian_start, 'julian_stop': julian_stop}
             input_file_dict = self.filter_input_files(**kwargs)
             kwargs = {'input_file_dict': input_file_dict}
-            output_file_dict = self.format_sonde.formatsondes(**kwargs)
-            kwargs = {'input_file_dict': output_file_dict,
-                      'archive_time': archive_time}
+            output_files = self.format_sonde.formatsondes(**kwargs)
+            kwargs = {'output_files': output_files,'archive_time': archive_time}
             self.create_tarball(**kwargs)
 
-    def create_tarball(self, input_file_dict, archive_time):
+    def create_tarball(self, output_files, archive_time):
         """
         DESCRIPTION:
 
@@ -290,17 +288,20 @@ class SondeArchive(object):
 
         INPUT VARIABLES:
 
-        * input_file_dict; a Python dictionary containing only the
-          base-class attribute input_file_dict key and value pairs
-          that are within the user specified Julian date range.
+        * output_file; a Python list containing only the output files,
+          within the user specified Julian date range, to compose the
+          respective tarball file.
 
         * archive_time; a Python string specifying the archive time
           for the tarball file.
 
         """
+        archive_filename = self.conf_dict['archive_filename']
         try:
-            archive_filename = self.conf_dict['archive_filename']
-            output_path = self.conf_dict['output_path']
+            kwargs={'datestr':archive_time,'in_frmttyp': '%Y-%m-%d_%H:%M:%S',
+                    'out_frmttyp':'%Y%m%d%H'}
+            analdate=util.date_interface.datestrfrmt(**kwargs)
+            output_path = os.path.join(self.conf_dict['output_path'],analdate)
             if not os.path.exists(output_path):
                 os.makedirs(output_path)
             kwargs = {'datestr': archive_time, 'in_frmttyp': '%Y-%m-%d_%H:%M:%S',
@@ -310,15 +311,14 @@ class SondeArchive(object):
             msg = ('Creating archive file %s.' % archive_filename)
             self.logger.info(msg=msg)
             with contextlib.closing(tarfile.open(archive_filename, 'w')) as tar:
-                for item in input_file_dict.keys():
-                    filename = input_file_dict[item]
-                    arcname = os.path.basename(filename)
-                    msg = ('Adding file %s to archive file %s.' % (arcname,
+                for filename in output_files:
+                    arcname = os.path.basename(filename)                    
+                    msg = ('Adding file %s to archive file %s.' % (filename,
                                                                    archive_filename))
                     self.logger.info(msg=msg)
-                    tar.add(filename, arcname=os.path.basename(
-                        filename), recursive=False)
-        except Exception as msg:
+                    tar.add(filename, arcname=arcname, recursive=False)
+        except Exception as err:
+            msg=('Tarball %s failed with error %s.'%(archive_filename,err))
             raise SondeArchiveError(msg=msg)
 
     def filter_input_files(self, julian_start, julian_stop):
