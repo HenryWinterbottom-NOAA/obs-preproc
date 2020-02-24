@@ -1120,6 +1120,11 @@ contains
        open(99,file=trim(adjustl(vdm%filename(i))),form='formatted')
        read(99,*) vdm%fix_time(i), vdm%fix_lat(i), vdm%fix_lon(i)
 
+       ! Check local variable and proceed accordingly
+
+       if(vdm%fix_lat(i) .eq. vdm_spval) vdm%fix_lat(i) = spval
+       if(vdm%fix_lon(i) .eq. vdm_spval) vdm%fix_lon(i) = spval
+       
        ! Loop through local variable
 
        do j = 1, vdm%nobs
@@ -1129,6 +1134,15 @@ contains
           read(99,*,end=1004) vdm%obs_time(i,j), vdm%obs_plev(i,j),       &
                & vdm%obs_alt(i,j), vdm%obs_dist(i,j), vdm%obs_head(i,j),  &
                & vdm%obs_wdir(i,j), vdm%obs_wspd(i,j)
+
+          ! Check local variable and proceed accordingly
+
+          if(vdm%obs_plev(i,j) .eq. vdm_spval) vdm%obs_plev(i,j) = spval
+          if(vdm%obs_alt(i,j)  .eq. vdm_spval) vdm%obs_alt(i,j)  = spval
+          if(vdm%obs_dist(i,j) .eq. vdm_spval) vdm%obs_dist(i,j) = spval
+          if(vdm%obs_head(i,j) .eq. vdm_spval) vdm%obs_head(i,j) = spval
+          if(vdm%obs_wdir(i,j) .eq. vdm_spval) vdm%obs_wdir(i,j) = spval
+          if(vdm%obs_wspd(i,j) .eq. vdm_spval) vdm%obs_wspd(i,j) = spval
           
        end do ! do j = 1, vdm%nobs
 

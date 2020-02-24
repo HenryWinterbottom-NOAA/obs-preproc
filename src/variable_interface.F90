@@ -59,6 +59,7 @@ module variable_interface
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   public :: varinfo_struct
+  public :: vdm_spval
   public :: vdm_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
@@ -98,6 +99,7 @@ module variable_interface
   real(r_double), parameter                                             :: bufr_spval = 10.e10
   real(r_kind),   parameter                                             :: hsa_spval  = -99.0
   real(r_kind),   parameter                                             :: spval      = huge(0.0)
+  real(r_kind),   parameter                                             :: vdm_spval  = -9.e30
   integer,        parameter                                             :: bufr_mxlv  = 200
   integer,        parameter                                             :: bufr_mxmn  = 35
   type bufr_info_struct
