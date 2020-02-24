@@ -74,6 +74,7 @@ HISTORY:
 
 import argparse
 import os
+import re
 
 import util as hafsutil
 
@@ -351,6 +352,7 @@ class VortexDataMessage(object):
             setattr(self, item, value)
         self.get_julianwindow()
         self.vdm_dict = dict()
+        self.missing_data = -9.e30
 
     def _filetimestamp(self, filename):
         """
@@ -360,13 +362,17 @@ class VortexDataMessage(object):
         filename.
 
         """
-        digit_list = [int(s) for s in filename if s.isdigit()]
-        datestr = str()
-        for item in digit_list:
-            datestr = datestr+str(item)
-        kwargs = {'datestr': datestr, 'in_frmttyp': '%Y%m%d%H%M', 'out_frmttyp':
-                  '%Y-%m-%d_%H:%M:%S'}
-        datestr = hafsutil.date_interface.datestrfrmt(**kwargs)
+        filename_strs = re.findall(r"[\d']+", os.path.basename(filename))
+        for filename_str in filename_strs:
+            if len(filename_str) >= 8:
+                digit_list = [int(s) for s in filename_str if s.isdigit()]
+                datestr = str()
+                for item in digit_list:
+                    datestr = datestr+str(item)
+                kwargs = {'datestr': datestr, 'in_frmttyp': '%Y%m%d%H%M',
+                          'out_frmttyp': '%Y-%m-%d_%H:%M:%S'}
+                datestr = hafsutil.date_interface.datestrfrmt(**kwargs)
+                break
         return datestr
 
     def _read_vdm(self, filename):
@@ -456,7 +462,8 @@ class VortexDataMessage(object):
                         kwargs = {'datestr': timestamp, 'in_frmttyp': '%Y-%m-%d_%H:%M:%S',
                                   'out_frmttyp': '%Y-%m-%d_%H:%M:%S', 'offset_seconds':
                                   86400}
-                        datestr = hafsutil.date_interface.datestrfrmt(**kwargs)
+                        datestr = hafsutil.date_interface.datestrfrmt(
+                            **kwargs)
                         kwargs = {'datestr': datestr}
                         datecomps = hafsutil.date_interface.datestrcomps(
                             **kwargs)
@@ -501,14 +508,32 @@ class VortexDataMessage(object):
             vdm_data = self._read_vdm(**kwargs)
             for item in vdm_data:
                 if 'C.' in item:
-                    plev = float(item.split()[1])*100.0
-                    alt = float(item.split()[3])
+                    try:
+                        plev = float(item.split()[1])*100.0
+                    except:
+                        plev = self.missing_data
+                    try:
+                        alt = float(item.split()[3])
+                    except:
+                        alt = self.missing_data
                 if 'J.' in item:
-                    wdir = float(item.split()[1])
-                    wspd = float(item.split()[3])*0.51444
+                    try:
+                        wdir = float(item.split()[1])
+                    except:
+                        wdir = self.missing_data
+                    try:
+                        wspd = float(item.split()[3])*0.51444
+                    except:
+                        wspd = self.missing_data
                 if 'K.' in item:
-                    bearing = float(item.split()[1])
-                    distance = float(item.split()[3])*1852.0
+                    try:
+                        bearing = float(item.split()[1])
+                    except:
+                        bearing = self.missing_data
+                    try:
+                        distance = float(item.split()[3])*1852.0
+                    except:
+                        distance = self.missing_data
                     obstime = item.split()[5]
                     datestr = ('%s-%s-%s_%s') % (timestamp_obj.year,
                                                  timestamp_obj.month, timestamp_obj.day, obstime)
@@ -519,18 +544,32 @@ class VortexDataMessage(object):
                 self.vdm_dict[key]['flwinds'][item].append(eval(item))
             for item in vdm_data:
                 if 'C.' in item:
-                    plev = float(item.split()[1])*100.0
-                    alt = float(item.split()[3])
+                    try:
+                        plev = float(item.split()[1])*100.0
+                    except:
+                        plev = self.missing_data
+                    try:
+                        alt = float(item.split()[3])
+                    except:
+                        alt = self.missing_data
                 if 'N.' in item:
-                    if 'NA' in item:
-                        break
-                    wdir = float(item.split()[1])
-                    wspd = float(item.split()[3])*0.51444
+                    try:
+                        wdir = float(item.split()[1])
+                    except:
+                        wdir = self.missing_data
+                    try:
+                        wspd = float(item.split()[3])*0.51444
+                    except:
+                        wspd = self.missing_data
                 if 'O.' in item:
-                    if 'NA' in item:
-                        break
-                    bearing = float(item.split()[1])
-                    distance = float(item.split()[3])*1852.0
+                    try:
+                        bearing = float(item.split()[1])
+                    except:
+                        bearing = self.missing_data
+                    try:
+                        distance = float(item.split()[3])*1852.0
+                    except:
+                        distance = self.missing_data
                     obstime = item.split()[5]
                     datestr = ('%s-%s-%s_%s') % (timestamp_obj.year,
                                                  timestamp_obj.month, timestamp_obj.day, obstime)
