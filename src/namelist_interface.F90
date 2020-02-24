@@ -133,6 +133,14 @@ module namelist_interface
   !   ingested fields are from a global forecast model; applies only
   !   if is_fcst_model is .true..
 
+  ! * is_recon; a FORTRAN logical variable specifying whether the
+  !   observations to be formatted are derived from reconnissance-type
+  !   missions.
+
+  ! * is_recon_vdm; a FORTRAN logical value specifying whether the
+  !   reconnissance observations are derived from vortex data message
+  !   (VDM) files.
+  
   ! * is_regional; a FORTRAN logical value specifying whether the
   !   ingested fields are from a regional forecast model; applies only
   !   if is_fcst_model is .true..
@@ -160,6 +168,11 @@ module namelist_interface
   !   a ocean-mask for observation values (i.e., all observations
   !   occuring over ocean are masked out -- not written as a BUFR
   !   record).
+
+  ! * recon_filelist; a FORTRAN character string specifying the
+  !   full-path to the external file containing a list of files
+  !   containing aircraft reconnissance derived observations to be
+  !   written into a BUFR record.
 
   ! * sample_radius; a FORTRAN 4-byte float value specifying the
   !   thinning radius for forecast model derived observations; units
@@ -198,6 +211,13 @@ module namelist_interface
   !   Administration (NOAA) Atlantic Oceanographic and Meteorological
   !   Laboratory (AOML) Hurricane Research Division (HRD) spline
   !   analysis (HSA) values; tempdrop_compute_drift must be true.
+
+  ! * wmm_coeff_filepath; a FORTRAN character string containing the
+  !   World Magnetic Model (WMM) coefficients that are used to
+  !   estimate the variations of the magnetic North Pole relative to
+  !   the Meteorological (e.g., 'true') North Pole; these are used in
+  !   instances of reconnissance (e.g., aircraft) collected
+  !   observations.
  
   !-----------------------------------------------------------------------
 
@@ -220,11 +240,15 @@ module namelist_interface
   character(len=500)                                                    :: &
        & fv3_static_filename = 'NOT USED'
   character(len=500)                                                    :: &
+       & recon_filelist = 'NOT USED'
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
        & tcinfo_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
+  character(len=500)                                                    :: &
+       & wmm_coeff_filepath = 'NOT USED'
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
   logical                                                               :: &
@@ -235,6 +259,10 @@ module namelist_interface
        & is_fv3 = .false.
   logical                                                               :: &
        & is_global = .false.
+  logical                                                               :: &
+       & is_recon = .false.  
+  logical                                                               :: &
+       & is_recon_vdm = .false. 
   logical                                                               :: &
        & is_regional = .false.
   logical                                                               :: &
@@ -260,16 +288,18 @@ module namelist_interface
   real(r_kind)                                                          :: &
        & tc_radius = 600000.0
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
-       & is_sonde
+       & is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
        & mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
        & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
        & is_regional, is_rotate_winds, sample_radius
+  namelist /recon/      is_recon_vdm, recon_filelist
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
   namelist /tc/         is_relocate, tc_radius, tcinfo_filename
+  namelist /wmm/        wmm_coeff_filepath
   
   !-----------------------------------------------------------------------
 
@@ -323,8 +353,10 @@ contains
        read(unit_nml,NML = share)
        read(unit_nml,NML = bufrio)
        read(unit_nml,NML = fcst_mdl)
+       read(unit_nml,NML = recon)
        read(unit_nml,NML = sonde)
        read(unit_nml,NML = tc)
+       read(unit_nml,NML = wmm)
        close(unit_nml)
 
     else  ! if(is_it_there)
@@ -344,6 +376,7 @@ contains
          & trim(adjustl(datapath))
     write(6,*) 'DEBUG                         = ', debug
     write(6,*) 'IS_FCST_MODEL                 = ', is_fcst_model
+    write(6,*) 'IS_RECON                      = ', is_recon
     write(6,*) 'IS_SONDE                      = ', is_sonde
     write(6,*) '/'
     write(6,*) '&BUFRIO'
@@ -436,6 +469,11 @@ contains
     write(6,*) 'IS_ROTATE_WINDS               = ', is_rotate_winds
     write(6,*) 'SAMPLE_RADIUS                 = ', sample_radius
     write(6,*) '/'
+    write(6,*) '&RECON'
+    write(6,*) 'IS_RECON_VDM                  = ', is_recon_vdm
+    write(6,*) 'RECON_FILELIST                = ',                         &
+         & trim(adjustl(recon_filelist))
+    write(6,*) '/'    
     write(6,*) '&SONDE'
     write(6,*) 'IS_SONDE_TEMPDROP             = ', is_sonde_tempdrop
     write(6,*) 'SONDE_FILELIST                = ',                         &
@@ -453,6 +491,10 @@ contains
     write(6,*) 'TC_RADIUS                     = ', tc_radius
     write(6,*) 'TCINFO_FILENAME               = ',                         &
          & trim(adjustl(tcinfo_filename))
+    write(6,*) '/'
+    write(6,*) '&WMM'
+    write(6,*) 'WMM_COEFF_FILEPATH            = ',                         &
+         & trim(adjustl(wmm_coeff_filepath))
     write(6,*) '/'    
 500 format('NAMELISTPARAMS: ', a, ' not found in the current working ',    &
          & 'directory. ABORTING!!!!')

@@ -24,10 +24,16 @@ is_rotate_winds     = T
 sample_radius       = 50000.0
 /
 
+&recon
+/
+
 &sonde
 /
 
 &tc
 is_relocate     = T
 tcinfo_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/obs-preproc.tcv.output'
+/
+
+&wmm
 /

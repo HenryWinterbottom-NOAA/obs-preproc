@@ -1,0 +1,176 @@
+*** README FOR THE SONDE PROCESSING PACKAGE OF OBS-PREPROC.
+
+#----
+
+# Installation of the sonde processing package for the obs-preproc
+  software.
+
+Please see file INSTALL for installation instructions.
+
+#----
+
+# Collecting TEMP-DROP observation messages for processing.
+
+A Python script, both versions 2 and 3 compatiable, is provided in the
+./tools path; this file is called format_sonde.py.
+
+An example sonde file from the NCEP data tank (e.g., DCOM) is provided
+in demo/20190901.sonde.
+
+To collect the respective TEMP-DROP observation messages into
+individual files, do as follows:
+
+%> cd tools
+%> python -c CYCLE -d DATAPATH
+
+where the above variables are as follows:
+
+(a) CYCLE; the forecast cycle for which to collect observations;
+    assuming the UNIX convention, this string is to be formatted as
+    %Y-%m-%d_%H:%M:%S.
+
+(b) DATAPATH; this is the path to the directory containing the .sonde
+    files from the NCEP data tank; for this example, this is as
+    follows:
+
+    ../demo/sondes
+
+Upon successful application, individual files will be created for each
+TEMP-DROP message identified within the .sonde file. The file naming
+convention is as follows:
+
+<date and timestamp; formatted as (assuming the UNIX convention) %Y%m%d%H%M>.<tasking center; typically KWBC (NOAA HRD or EMC) or KNHC (NOAA NHC)>
+
+If multiple files exist with the same time-stamp (which is used to
+define the filename), the new file names will be appended with an
+integer. In addition, file names suffixed with '.mod' are
+created. These files contain identical TEMP-DROP messages but with the
+release and splash point locations written to seperate lines; this is
+intended to enable to the TEMP-DROP processing software to correctly
+process the start and end times for the observations.
+
+Finally, also created will be filelist.list. This file is used by the
+TEMP-DROP processing software in order to process the individual
+sondes (see the namelist attribute 'sonde_filelist').
+
+#----
+
+# Running the TEMP-DROP sonde processing package.
+
+(1) An example namelist for the TEMP-DROP sonde processing package
+    executable (e.g., exec/obs-preproc.exe) is provided in ./demo. For
+    documentation regarding the namelist variable meanings, please
+    consult src/namelist_interface.F90.
+
+(2) Copy the namelist demo/tempdrop-sonde/obs-preproc.input to
+    exec/obs-preproc.input.
+
+(3) Example TEMP-DROP message files are provided in demo/data,
+    including an ASCII formatted file containing the file names; this
+    file is parsed by the executable in order to (a) decode the
+    TEMP-DROP messages and (b) estimate the drift of the sonde.
+
+(4) To launch the executable, do as follows:
+
+    %> ./obs-preproc.exe
+
+(5) If successful, multiple files will be created in the path denoted
+    by the namelist variable 'datapath'; they are as follows:
+
+    (a) hsa-map.table; this file contains the processed (e.g.,
+        decoded) TEMP-DROP message file corresponding to original
+        (e.g., encoded) TEMP-DROP message file; for example:
+
+	File ./AF303_00_190710.hsa is the decoded TEMP-DROP message
+	corresponding to the encoded TEMP-DROP message file
+	../demo/data/201907101735.KNHC.
+
+        Please refer to
+        https://www.aoml.noaa.gov/hrd/format/tempdrop_format.html for
+        more information.
+
+    (b) *.hsa; this (these) file(s) contain the decoded TEMP-DROP
+        messages from the original TEMP-DROP encoded message file(s);
+        the file is column-delimited as follows:
+
+        (i)    wx flag; should always be 1.
+
+	(ii)   date stamp, formatted as 2-digit year (yy), 2-digit month
+	       (mm), and 2-digit day (dd).
+
+        (iii)  time stamp, relative to GMT, formatted as 2-digit hour
+               (hh) and 2-digit minute (nn).
+
+        (iv)   latitude; positive for Northern hemisphere; units are
+               degrees.
+
+        (v)    longitude; positive for Western Hemisphere; units are
+               degrees.
+
+        (vi)   pressure level of observation; units are hPa.
+
+	(vii)  temperature observation; units are degrees Celcius.
+
+        (viii) relative humidity; units are percentage (%).
+
+        (ix)   height of observation; units are meters.
+
+        (x)    zonal (u) wind observation; units are meters per second.
+
+        (xi)   meridional (v) wind observation; units are meters per
+               second.
+
+	(xii)  observation level type; currently only mandatory (MANL)
+	       and significant (SIGL) levels are considered.
+
+    (c) *.hsa.drft; this (these) file(s) contain the decoded TEMP-DROP
+        message with the estimate sonde drift; the sonde drift is
+        determined by the date- and time-stamp and latitude and
+        longitude values along the TEMP-DROP observation profile;
+        otherwise, the format of these files is identical to the
+        description provided in (b).
+
+    (d) *.hsa.base; this (these) file(s) contain information regarding
+        the sonde drift estimates; the file is column-delimited as
+        follows:
+
+        (i)   longitude coordinate of splash location; units are
+              degrees.
+
+        (ii)  latitude coordinate of splash location; units are
+              degrees.
+
+        (iii) the fall time for the sonde; units are seconds.
+
+        (iv)  longitude coordinate for the last collected observation
+              as estimated by the sonde drift; units are degrees.
+
+        (v)   latitude coordinate for the last collected observation
+              as estimated by the sonde drift; units are degrees.
+
+        (vi)  time-offset between the fall time as deduced from the
+              sonde drift and the information collected from the
+              TEMP-DROP message.
+
+        These files are not used during the asssimilation of
+        observations and are provided as a diagnostic to assess
+        algorithm accuracy and may be ignored.
+
+    (e) *.hsa.nc; this (these) file(s) contain the sonde observations
+        at SIGL and MANL levels, and the position estimated from the
+        drift, formatted in accordance with netcdf; these files are
+        provided as a diagnostic for plotting purposes and may be
+        ignored.
+
+    NOTE: all file names suffixed with '.hsa*' are formatted as
+    follows:
+
+    <aircraft ID>_<observation number>.hsa
+
+#----
+
+Contact: Henry R. Winterbottom (henry.winterbottom@noaa.gov)
+
+#----
+
+Last modified: Fri Jan 10 18:06:17 UTC 2020

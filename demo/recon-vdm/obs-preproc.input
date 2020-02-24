@@ -1,0 +1,30 @@
+&share
+analdate      = '2019-09-05_12:00:00'
+datapath      = './'
+debug         = T
+is_recon      = T
+/
+
+&bufrio
+bufr_filepath      = './prepbufr.vdm'
+bufr_info_filepath = '../demo/recon-vdm/bufr_info.json'
+bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
+/
+
+&fcst_mdl
+/
+
+&recon
+is_recon_vdm   = T
+recon_filelist = '/Volumes/Time Machine/regression-tests/obs-preproc/recon-vdm/filelist.list'
+/
+
+&sonde
+/
+
+&tc
+/
+
+&wmm
+wmm_coeff_filepath = '../demo/wmm/WMM.COF'
+/

@@ -59,6 +59,8 @@ module variable_interface
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
   public :: varinfo_struct
+  public :: vdm_spval
+  public :: vdm_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
      module procedure finalize_fcstmdl_struct
@@ -73,6 +75,7 @@ module variable_interface
      module procedure finalize_statgrid_struct
      module procedure finalize_topogrid_struct
      module procedure finalize_varinfo_struct
+     module procedure finalize_vdm_struct
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
@@ -88,6 +91,7 @@ module variable_interface
      module procedure initialize_statgrid_struct
      module procedure initialize_topogrid_struct
      module procedure initialize_varinfo_struct
+     module procedure initialize_vdm_struct
   end interface variable_interface_setup_struct
 
   ! Define local variables
@@ -95,6 +99,7 @@ module variable_interface
   real(r_double), parameter                                             :: bufr_spval = 10.e10
   real(r_kind),   parameter                                             :: hsa_spval  = -99.0
   real(r_kind),   parameter                                             :: spval      = huge(0.0)
+  real(r_kind),   parameter                                             :: vdm_spval  = -9.e30
   integer,        parameter                                             :: bufr_mxlv  = 200
   integer,        parameter                                             :: bufr_mxmn  = 35
   type bufr_info_struct
@@ -297,7 +302,26 @@ module variable_interface
      integer                                                            :: nvars
      integer                                                            :: ndims
      integer                                                            :: nattrs
-  end type varinfo_struct         ! type varinfo_struct  
+  end type varinfo_struct         ! type varinfo_struct
+  type vdm_struct
+     character(len=19),         dimension(:,:),             allocatable :: obs_time
+     character(len=500),        dimension(:),               allocatable :: filename
+     character(len=19),         dimension(:),               allocatable :: fix_time
+     real(r_kind),              dimension(:,:),             allocatable :: obs_alt
+     real(r_kind),              dimension(:,:),             allocatable :: obs_dist
+     real(r_kind),              dimension(:,:),             allocatable :: obs_head
+     real(r_kind),              dimension(:,:),             allocatable :: obs_lat
+     real(r_kind),              dimension(:,:),             allocatable :: obs_lon
+     real(r_kind),              dimension(:,:),             allocatable :: obs_plev
+     real(r_kind),              dimension(:,:),             allocatable :: obs_u
+     real(r_kind),              dimension(:,:),             allocatable :: obs_v
+     real(r_kind),              dimension(:,:),             allocatable :: obs_wdir
+     real(r_kind),              dimension(:,:),             allocatable :: obs_wspd
+     real(r_kind),              dimension(:),               allocatable :: fix_lat                               
+     real(r_kind),              dimension(:),               allocatable :: fix_lon
+     integer                                                            :: nobs
+     integer                                                            :: nvdm
+  end type vdm_struct             ! type vdm_struct
 
     !-----------------------------------------------------------------------
 
@@ -797,7 +821,54 @@ contains
 
     !=====================================================================
 
-  end subroutine finalize_varinfo_struct  
+  end subroutine finalize_varinfo_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! finalize_vdm_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! vdm_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN vdm_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_vdm_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(vdm_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%filename)) deallocate(grid%filename)
+    if(allocated(grid%fix_lat))  deallocate(grid%fix_lat)
+    if(allocated(grid%fix_lon))  deallocate(grid%fix_lon)
+    if(allocated(grid%fix_time)) deallocate(grid%fix_time)    
+    if(allocated(grid%obs_alt))  deallocate(grid%obs_alt)
+    if(allocated(grid%obs_dist)) deallocate(grid%obs_dist)
+    if(allocated(grid%obs_head)) deallocate(grid%obs_head)
+    if(allocated(grid%obs_lat))  deallocate(grid%obs_lat)
+    if(allocated(grid%obs_lon))  deallocate(grid%obs_lon)
+    if(allocated(grid%obs_plev)) deallocate(grid%obs_plev)
+    if(allocated(grid%obs_time)) deallocate(grid%obs_time)
+    if(allocated(grid%obs_u))    deallocate(grid%obs_u)
+    if(allocated(grid%obs_v))    deallocate(grid%obs_v)
+    if(allocated(grid%obs_wdir)) deallocate(grid%obs_wdir)
+    if(allocated(grid%obs_wspd)) deallocate(grid%obs_wspd)
+
+    !=====================================================================
+
+  end subroutine finalize_vdm_struct
 
   !=======================================================================
 
@@ -1432,4 +1503,84 @@ contains
   
   !=======================================================================
 
+  ! SUBROUTINE: 
+
+  ! initialize_vdm_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! vdm_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN vdm_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN vdm_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_vdm_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(vdm_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%obs_alt))                                      &
+         & allocate(grid%obs_alt(grid%nvdm,grid%nobs))  
+    if(.not. allocated(grid%obs_dist))                                     &
+         & allocate(grid%obs_dist(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_head))                                     &
+         & allocate(grid%obs_head(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_lat))                                      &
+         & allocate(grid%obs_lat(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_lon))                                      &
+         & allocate(grid%obs_lon(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_plev))                                     &
+         & allocate(grid%obs_plev(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_time))                                     &
+         & allocate(grid%obs_time(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_u))                                        &
+         & allocate(grid%obs_u(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_v))                                        &
+         & allocate(grid%obs_v(grid%nvdm,grid%nobs))    
+    if(.not. allocated(grid%obs_wdir))                                     &
+         & allocate(grid%obs_wdir(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%obs_wspd))                                     &
+         & allocate(grid%obs_wspd(grid%nvdm,grid%nobs))
+    if(.not. allocated(grid%filename))                                     &
+         & allocate(grid%filename(grid%nvdm))
+    if(.not. allocated(grid%fix_lat))                                      &
+         & allocate(grid%fix_lat(grid%nvdm))
+    if(.not. allocated(grid%fix_lon))                                      &
+         & allocate(grid%fix_lon(grid%nvdm))
+    if(.not. allocated(grid%fix_time))                                     &
+         & allocate(grid%fix_time(grid%nvdm))
+
+    ! Define local variables
+
+    grid%obs_dist = spval
+    grid%obs_head = spval
+    grid%obs_plev = spval
+    grid%obs_lat  = spval
+    grid%obs_lon  = spval
+    grid%obs_time = '0000-00-00_00:00:00'
+    grid%obs_u    = spval
+    grid%obs_v    = spval
+    grid%obs_wdir = spval
+    grid%obs_wspd = spval
+    
+    !=====================================================================
+
+  end subroutine initialize_vdm_struct
+
+  !=======================================================================
+  
 end module variable_interface
