@@ -131,7 +131,8 @@ module variable_interface
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
   type bufrhdr_struct
-     real(r_double),            dimension(:),               allocatable :: hdr
+     real(r_double),            dimension(:,:),             allocatable :: hdr
+     integer                                                            :: mxmn
      integer                                                            :: nrecs     
   end type bufrhdr_struct         ! type bufrhdr_struct
   type fcstmdl_struct
@@ -292,6 +293,11 @@ module variable_interface
   end type tcinfo_struct          ! type tcinfo_struct
   type tdr_struct
      character(len=3),          dimension(:),               allocatable :: stmid
+     character(len=19)                                                  :: file_timestamp
+     real(r_kind),              dimension(:),               allocatable :: time_max
+     real(r_kind),              dimension(:),               allocatable :: time_min
+     integer,                   dimension(:),               allocatable :: flag
+     integer,                   dimension(:),               allocatable :: nrecs
      integer                                                            :: nstmid
   end type tdr_struct             ! type tdr_struct
   type topogrid_struct
@@ -820,7 +826,11 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(allocated(grid%stmid)) deallocate(grid%stmid)
+    if(allocated(grid%stmid))    deallocate(grid%stmid)
+    if(allocated(grid%time_max)) deallocate(grid%time_max)
+    if(allocated(grid%time_min)) deallocate(grid%time_min)
+    if(allocated(grid%flag))     deallocate(grid%flag)
+    if(allocated(grid%nrecs))    deallocate(grid%nrecs)
     
     !=====================================================================
 
@@ -1039,7 +1049,7 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(grid%hdr)) allocate(grid%hdr(grid%nrecs))
+    if(.not. allocated(grid%hdr)) allocate(grid%hdr(grid%mxmn,grid%nrecs))
 
     !=====================================================================
     
@@ -1550,11 +1560,20 @@ contains
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(grid%stmid)) allocate(grid%stmid(grid%nstmid))
-
+    if(.not. allocated(grid%stmid))                                        &
+         & allocate(grid%stmid(grid%nstmid))
+    if(.not. allocated(grid%time_max))                                     &
+         & allocate(grid%time_max(grid%nstmid))
+    if(.not. allocated(grid%time_min))                                     &
+         & allocate(grid%time_min(grid%nstmid))
+    if(.not. allocated(grid%flag))                                         &
+         & allocate(grid%flag(grid%nstmid))
+    if(.not. allocated(grid%nrecs))                                        &
+         & allocate(grid%nrecs(grid%nstmid))
+    
     !=====================================================================
     
-  end subroutine initialize_tdr_struct  
+  end subroutine initialize_tdr_struct
 
   !=======================================================================
 

@@ -39,7 +39,8 @@ module bufrio_interface
   public :: bufrio_interface_idate
   public :: bufrio_interface_nrecs
   public :: bufrio_interface_open
-  public :: bufrio_interface_readhdr
+  public :: bufrio_interface_readhdrall
+  public :: bufrio_interface_readhdruniq
   public :: bufrio_interface_write
   public :: bufr_iret
 
@@ -297,15 +298,151 @@ contains
 
   ! SUBROUTINE:
 
-  ! bufrio_interface_readhdr.f90
+  ! bufrio_interface_readhdrall.f90
 
   ! DESCRIPTION:
 
-  !
+  ! This subroutine reads the user specified BUFR header string(s) and
+  ! returns all values for the respective header string(s).
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the full-path to
+  !   the user specified BUFR file path.
+
+  ! * bufr; a FORTRAN bufr_struct variable, containing (at minimum)
+  !   the header strings to seek (hdstr), the total number of
+  !   mnuemonics (mxmn), and the total number of levels (mxlv).
+
+  ! * bufrhdr; a FORTRAN bufrhdr variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * bufrhdr; a FORTRAN bufrhdr variable containing the values for
+  !   the user specified header string(s).
 
   !-----------------------------------------------------------------------
 
-  subroutine bufrio_interface_readhdr(filename,bufr,bufrhdr)
+  subroutine bufrio_interface_readhdrall(filename,bufr,bufrhdr)
+
+    ! Define variables passed to routine
+
+    type(bufr_struct)                                                   :: bufr
+    type(bufrhdr_struct)                                                :: bufrhdr
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=8)                                                    :: subset
+    real(r_double)                                                      :: bufrtype(bufr%mxmn)
+    integer                                                             :: idate
+    integer                                                             :: ireadmg
+    integer                                                             :: ireadsb
+    integer                                                             :: nlev
+    integer                                                             :: nrecs
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+    
+    ! Define local variables
+
+    open(unit_in,file=trim(adjustl(filename)),form='unformatted',          &
+         & convert='big_endian')
+    call openbf(unit_in,'IN',unit_in)
+    call readmg(unit_in,subset,bufr%idate,bufr_iret)
+    bufr%nrecs = 0
+    
+    ! Loop through local variable
+
+    msg_report1: do while(ireadmg(unit_in,subset,idate) .eq. 0)
+
+       ! Loop through local variable
+
+       sb_report1: do while(ireadsb(unit_in) .eq. 0)
+
+          ! Define local variables
+
+          call ufbint(unit_in,bufrtype,bufr%mxmn,bufr%mxlv,nlev,           &
+               & trim(adjustl(bufr%hdstr)))
+          bufr%nrecs = bufr%nrecs + 1
+             
+       end do sb_report1 ! do while(ireadsb(unit_in) .eq. 0)
+
+    end do msg_report1 ! do while(ireadmg(unit_in,subset,idate)
+                       ! .eq. 0)
+
+    ! Define local variables
+
+    call closbf(unit_in)
+    bufrhdr%mxmn  = bufr%mxmn
+    bufrhdr%nrecs = bufr%nrecs
+    call variable_interface_setup_struct(bufrhdr)
+    nrecs         = 0
+    open(unit_in,file=trim(adjustl(filename)),form='unformatted',          &
+         & convert='big_endian')
+    call openbf(unit_in,'IN',unit_in)
+
+    ! Loop through local variable
+
+    msg_report2: do while(ireadmg(unit_in,subset,idate) .eq. 0)
+
+       ! Loop through local variable
+
+       sb_report2: do while(ireadsb(unit_in) .eq. 0)
+
+          ! Define local variables
+
+          call ufbint(unit_in,bufrtype,bufr%mxmn,bufr%mxlv,nlev,           &
+               & trim(adjustl(bufr%hdstr)))
+          nrecs                             = nrecs + 1
+          bufrhdr%hdr(1:bufrhdr%mxmn,nrecs) = bufrtype(1:bufr%mxmn)
+
+       end do sb_report2 ! do while(ireadsb(unit_in) .eq. 0)
+
+    end do msg_report2 ! do while(ireadmg(unit_in,subset,idate)
+                       ! .eq. 0)
+
+    ! Define local variables
+
+    call closbf(unit_in)
+          
+    !=====================================================================
+
+  end subroutine bufrio_interface_readhdrall
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! bufrio_interface_readhdruniq.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine reads the user specified BUFR header string(s) and
+  ! returns all unique values for the respective header string(s).
+
+  ! INPUT VARIABLES:
+
+  ! * filename; a FORTRAN character string specifying the full-path to
+  !   the user specified BUFR file path.
+
+  ! * bufr; a FORTRAN bufr_struct variable, containing (at minimum)
+  !   the header strings to seek (hdstr), the total number of
+  !   mnuemonics (mxmn), and the total number of levels (mxlv).
+
+  ! * bufrhdr; a FORTRAN bufrhdr variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * bufrhdr; a FORTRAN bufrhdr variable containing the unique values
+  !   for the user specified header string(s).
+
+  !-----------------------------------------------------------------------
+
+  subroutine bufrio_interface_readhdruniq(filename,bufr,bufrhdr)
 
     ! Define variables passed to routine
 
@@ -317,7 +454,7 @@ contains
 
     character(len=8)                                                    :: subset
     real(r_double),             dimension(:),               allocatable :: bufrhdrarr 
-    real(r_double)                                                      :: bufrtype(1)
+    real(r_double)                                                      :: bufrtype(bufr%mxmn)
     integer                                                             :: ireadmg
     integer                                                             :: ireadsb
     integer                                                             :: nlev
@@ -346,7 +483,8 @@ contains
 
           ! Define local variables
 
-          call ufbint(unit_in,bufrtype,1,1,nlev,trim(adjustl(bufr%hdstr)))
+          call ufbint(unit_in,bufrtype,bufr%mxmn,bufr%mxlv,nlev,           &
+               & trim(adjustl(bufr%hdstr)))
           nrecs = nrecs + 1
              
        end do sb_report1 ! do while(ireadsb(unit_in) .eq. 0)
@@ -380,7 +518,8 @@ contains
 
           ! Define local variables
 
-          call ufbint(unit_in,bufrtype,1,1,nlev,trim(adjustl(bufr%hdstr)))
+          call ufbint(unit_in,bufrtype,bufr%mxmn,bufr%mxlv,nlev,           &
+               & trim(adjustl(bufr%hdstr)))
 
           ! Check local variable and proceed accordingly
     
@@ -401,6 +540,7 @@ contains
     ! Define local variables
 
     call closbf(unit_in)
+    bufrhdr%mxmn  = 1
     bufrhdr%nrecs = nrecs
     call variable_interface_setup_struct(bufrhdr)
 
@@ -410,7 +550,7 @@ contains
 
        ! Define local variables
 
-       bufrhdr%hdr(i) = bufrhdrarr(i)
+       bufrhdr%hdr(1:bufrhdr%mxmn,i) = bufrhdrarr(i)
 
     end do ! do i = 1, bufrhdr%nrecs
     
@@ -420,7 +560,7 @@ contains
        
     !=====================================================================
 
-  end subroutine bufrio_interface_readhdr
+  end subroutine bufrio_interface_readhdruniq
     
   !=======================================================================
 
