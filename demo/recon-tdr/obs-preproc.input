@@ -1,0 +1,29 @@
+&share
+analdate      = '2019-09-01_00:00:00'
+datapath      = './'
+debug         = T
+is_recon      = T
+/
+
+&bufrio
+bufr_filepath      = './prepbufr.vdm'
+bufr_info_filepath = '../demo/recon-vdm/bufr_info.json'
+bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
+/
+
+&fcst_mdl
+/
+
+&recon
+is_recon_tdr       = T
+recon_tdr_filepath = '../demo/recon-tdr/gdas1.t00z.tldplr.tm00.bufr_d'
+/
+
+&sonde
+/
+
+&tc
+/
+
+&wmm
+/
