@@ -42,6 +42,7 @@ module variable_interface
   public :: bufr_mxmn
   public :: bufr_spval
   public :: bufr_struct
+  public :: bufrhdr_struct
   public :: fcstmdl_struct
   public :: fv3_struct
   public :: grid_struct
@@ -55,6 +56,7 @@ module variable_interface
   public :: spval
   public :: statgrid_struct
   public :: tcinfo_struct
+  public :: tdr_struct
   public :: topogrid_struct
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
@@ -63,6 +65,7 @@ module variable_interface
   public :: vdm_struct
   interface variable_interface_cleanup_struct
      module procedure finalize_bufr_struct
+     module procedure finalize_bufrhdr_struct
      module procedure finalize_fcstmdl_struct
      module procedure finalize_fv3_struct
      module procedure finalize_grid_struct
@@ -73,12 +76,14 @@ module variable_interface
      module procedure finalize_meteo_struct
      module procedure finalize_sonde_struct
      module procedure finalize_statgrid_struct
+     module procedure finalize_tdr_struct
      module procedure finalize_topogrid_struct
      module procedure finalize_varinfo_struct
      module procedure finalize_vdm_struct
   end interface variable_interface_cleanup_struct
   interface variable_interface_setup_struct
      module procedure initialize_bufr_struct
+     module procedure initialize_bufrhdr_struct
      module procedure initialize_fcstmdl_struct
      module procedure initialize_fv3_struct
      module procedure initialize_grid_struct
@@ -89,6 +94,7 @@ module variable_interface
      module procedure initialize_meteo_struct
      module procedure initialize_sonde_struct
      module procedure initialize_statgrid_struct
+     module procedure initialize_tdr_struct
      module procedure initialize_topogrid_struct
      module procedure initialize_varinfo_struct
      module procedure initialize_vdm_struct
@@ -124,6 +130,10 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
+  type bufrhdr_struct
+     real(r_double),            dimension(:),               allocatable :: hdr
+     integer                                                            :: nrecs     
+  end type bufrhdr_struct         ! type bufrhdr_struct
   type fcstmdl_struct
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
@@ -280,6 +290,10 @@ module variable_interface
      real(r_kind)                                                       :: obs_pcen
      real(r_kind)                                                       :: obs_vmax
   end type tcinfo_struct          ! type tcinfo_struct
+  type tdr_struct
+     character(len=3),          dimension(:),               allocatable :: stmid
+     integer                                                            :: nstmid
+  end type tdr_struct             ! type tdr_struct
   type topogrid_struct
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
@@ -363,6 +377,39 @@ contains
 
   end subroutine finalize_bufr_struct
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! finalize_bufrhdr_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! bufrhdr_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN bufrhdr_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_bufrhdr_struct(grid)
+
+    ! Define variables passed routine
+
+    type(bufrhdr_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%hdr)) deallocate(grid%hdr)
+
+    !=====================================================================
+
+  end subroutine finalize_bufrhdr_struct
+  
   !=======================================================================
 
   ! SUBROUTINE: 
@@ -748,6 +795,39 @@ contains
 
   !=======================================================================
 
+  ! SUBROUTINE: 
+
+  ! finalize_tdr_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine deallocates memory for all arrays within the
+  ! tdr_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN tdr_struct variable.
+
+  !-----------------------------------------------------------------------
+
+  subroutine finalize_tdr_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(tdr_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Deallocate memory for local variables
+
+    if(allocated(grid%stmid)) deallocate(grid%stmid)
+    
+    !=====================================================================
+
+  end subroutine finalize_tdr_struct
+  
+  !=======================================================================
+
   ! SUBROUTINE:
 
   ! finalize_topogrid_struct.f90
@@ -924,6 +1004,46 @@ contains
     !=====================================================================
 
   end subroutine initialize_bufr_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! initialize_bufrhdr_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! bufrhdr_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN bufrhdr_struct variable containing the variables
+  !   necessary to allocate and initialize the respective variable
+  !   arrays.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN bufrhdr_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_bufrhdr_struct(grid)
+
+    ! Define variables passed routine
+
+    type(bufrhdr_struct)                                                :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%hdr)) allocate(grid%hdr(grid%nrecs))
+
+    !=====================================================================
+    
+  end subroutine initialize_bufrhdr_struct
 
   !=======================================================================
 
@@ -1397,6 +1517,44 @@ contains
     !=====================================================================
     
   end subroutine initialize_statgrid_struct
+
+  !=======================================================================
+
+  ! SUBROUTINE: 
+  
+  ! initialize_tdr_struct.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine allocates memory for all arrays within the
+  ! tdr_struct FORTRAN structure.
+
+  ! INPUT VARIABLES:
+
+  ! * grid; a FORTRAN tdr_struct variable.
+
+  ! OUTPUT VARIABLES:
+
+  ! * grid; a FORTRAN tdr_struct variable containing allocated and
+  !   initialized variable arrays.
+
+  !-----------------------------------------------------------------------
+
+  subroutine initialize_tdr_struct(grid)
+
+    ! Define variables passed to routine
+
+    type(tdr_struct)                                                    :: grid
+
+    !=====================================================================
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(grid%stmid)) allocate(grid%stmid(grid%nstmid))
+
+    !=====================================================================
+    
+  end subroutine initialize_tdr_struct  
 
   !=======================================================================
 

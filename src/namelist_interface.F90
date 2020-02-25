@@ -242,6 +242,10 @@ module namelist_interface
   character(len=500)                                                    :: &
        & recon_filelist = 'NOT USED'
   character(len=500)                                                    :: &
+       & recon_tdr_filepath = 'NOT USED' ! NEED
+  character(len=500)                                                    :: &
+       & recon_tdrstatus_filepath = './recon.tdr-status' ! NEED
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
        & tcinfo_filename = 'NOT USED'
@@ -261,6 +265,8 @@ module namelist_interface
        & is_global = .false.
   logical                                                               :: &
        & is_recon = .false.  
+  logical                                                               :: &
+       & is_recon_tdr = .false. ! NEED 
   logical                                                               :: &
        & is_recon_vdm = .false. 
   logical                                                               :: &
@@ -294,7 +300,8 @@ module namelist_interface
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
        & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
        & is_regional, is_rotate_winds, sample_radius
-  namelist /recon/      is_recon_vdm, recon_filelist
+  namelist /recon/      is_recon_tdr, is_recon_vdm, recon_filelist,        &
+       & recon_tdr_filepath, recon_tdrstatus_filepath
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt

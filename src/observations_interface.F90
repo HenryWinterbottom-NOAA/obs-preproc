@@ -34,6 +34,7 @@ module observations_interface
   use forecast_model_interface
   use kinds_interface
   use namelist_interface
+  use recon_tdr_interface
   use recon_vdm_interface
   use sonde_tempdrop_interface
 
@@ -102,7 +103,7 @@ contains
 
   end subroutine obs_fcst_model
 
-    !=======================================================================
+  !=======================================================================
 
   ! SUBROUTINE:
 
@@ -114,6 +115,8 @@ contains
   ! collected from reconnissance messages; currently the following
   ! platforms are supported:
 
+  ! + Tail-Doppler radar (TDR) reconnissance observation information.
+  
   ! + National Hurricane Center (NHC) Vortex Data Messages (VDM).
 
   !-----------------------------------------------------------------------
@@ -124,6 +127,7 @@ contains
 
     ! Check local variable and proceed accordingly
 
+    if(is_recon_tdr) call recon_tdr()
     if(is_recon_vdm) call recon_vdm()
     
     !=====================================================================

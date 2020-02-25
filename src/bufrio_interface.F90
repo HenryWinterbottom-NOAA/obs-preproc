@@ -39,6 +39,7 @@ module bufrio_interface
   public :: bufrio_interface_idate
   public :: bufrio_interface_nrecs
   public :: bufrio_interface_open
+  public :: bufrio_interface_readhdr
   public :: bufrio_interface_write
   public :: bufr_iret
 
@@ -292,6 +293,135 @@ contains
 
   end subroutine bufrio_interface_open
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! bufrio_interface_readhdr.f90
+
+  ! DESCRIPTION:
+
+  !
+
+  !-----------------------------------------------------------------------
+
+  subroutine bufrio_interface_readhdr(filename,bufr,bufrhdr)
+
+    ! Define variables passed to routine
+
+    type(bufr_struct)                                                   :: bufr
+    type(bufrhdr_struct)                                                :: bufrhdr
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    character(len=8)                                                    :: subset
+    real(r_double),             dimension(:),               allocatable :: bufrhdrarr 
+    real(r_double)                                                      :: bufrtype(1)
+    integer                                                             :: ireadmg
+    integer                                                             :: ireadsb
+    integer                                                             :: nlev
+    integer                                                             :: nrecs
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+    
+    ! Define local variables
+
+    open(unit_in,file=trim(adjustl(filename)),form='unformatted',          &
+         & convert='big_endian')
+    call openbf(unit_in,'IN',unit_in)
+    nrecs = 0
+    
+    ! Loop through local variable
+
+    msg_report1: do while(ireadmg(unit_in,subset,bufr%idate) .eq. 0)
+
+       ! Loop through local variable
+
+       sb_report1: do while(ireadsb(unit_in) .eq. 0)
+
+          ! Define local variables
+
+          call ufbint(unit_in,bufrtype,1,1,nlev,trim(adjustl(bufr%hdstr)))
+          nrecs = nrecs + 1
+             
+       end do sb_report1 ! do while(ireadsb(unit_in) .eq. 0)
+
+    end do msg_report1 ! do while(ireadmg(unit_in,subset,bufr%idate)
+                       ! .eq. 0)
+
+    ! Define local variables
+
+    call closbf(unit_in)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(bufrhdrarr)) allocate(bufrhdrarr(nrecs))
+    
+    ! Define local variables
+
+    open(unit_in,file=trim(adjustl(filename)),form='unformatted',          &
+         & convert='big_endian')
+    call openbf(unit_in,'IN',unit_in)
+    bufrhdrarr = dble(spval)
+    nrecs      = 0
+
+    ! Loop through local variable
+
+    msg_report2: do while(ireadmg(unit_in,subset,bufr%idate) .eq. 0)
+
+       ! Loop through local variable
+
+       sb_report2: do while(ireadsb(unit_in) .eq. 0)
+
+          ! Define local variables
+
+          call ufbint(unit_in,bufrtype,1,1,nlev,trim(adjustl(bufr%hdstr)))
+
+          ! Check local variable and proceed accordingly
+    
+          if(all(bufrhdrarr(1:nrecs) .ne. bufrtype(1))) then
+       
+             ! Define local variables
+       
+             nrecs             = nrecs + 1
+             bufrhdrarr(nrecs) = bufrtype(1)
+       
+          end if ! if(any(bufrhdrarr(1:nrecs) .ne. bufrtype(1)))
+             
+       end do sb_report2 ! do while(ireadsb(unit_in) .eq. 0)
+
+    end do msg_report2 ! do while(ireadmg(unit_in,subset,bufr%idate)
+                       ! .eq. 0)
+
+    ! Define local variables
+
+    call closbf(unit_in)
+    bufrhdr%nrecs = nrecs
+    call variable_interface_setup_struct(bufrhdr)
+
+    ! Loop through local variable
+
+    do i = 1, bufrhdr%nrecs
+
+       ! Define local variables
+
+       bufrhdr%hdr(i) = bufrhdrarr(i)
+
+    end do ! do i = 1, bufrhdr%nrecs
+    
+    ! Deallocate memory for local variables
+
+    if(allocated(bufrhdrarr)) deallocate(bufrhdrarr)
+       
+    !=====================================================================
+
+  end subroutine bufrio_interface_readhdr
+    
   !=======================================================================
 
   ! SUBROUTINE:
