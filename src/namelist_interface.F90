@@ -140,6 +140,10 @@ module namelist_interface
   ! * is_recon_vdm; a FORTRAN logical value specifying whether the
   !   reconnissance observations are derived from vortex data message
   !   (VDM) files.
+
+  ! * is_recon_tdr; a FORTRAN logical value specifying whether the
+  !   reconnissance observations are derived from Tail-Doppler Radar
+  !   (TDR) Binary Universal Formatted (BUFR) files.
   
   ! * is_regional; a FORTRAN logical value specifying whether the
   !   ingested fields are from a regional forecast model; applies only
@@ -174,6 +178,10 @@ module namelist_interface
   !   containing aircraft reconnissance derived observations to be
   !   written into a BUFR record.
 
+  ! * recon_tdr_filepath; a FORTRAN character string specifying the
+  !   full-path to the external file containing the TDR BUFR
+  !   observation records.
+
   ! * sample_radius; a FORTRAN 4-byte float value specifying the
   !   thinning radius for forecast model derived observations; units
   !   are meters.
@@ -191,6 +199,18 @@ module namelist_interface
   !   forecast attributes for the respective TC events; is_fcst_model
   !   must be .true. for this file to be invoked.
 
+  ! * tdr_min_offset_seconds; a FORTRAN 4-byte float value specifying
+  !   the minimum observation time offset (in seconds) relative to the
+  !   time on the TDR BUFR file (see recon_tdr_filepath).
+
+  ! * tdr_max_offset_seconds; a FORTRAN 4-byte float value specifying
+  !   the maximum observation time offset (in seconds) relative to the
+  !   time on the TDR BUFR file (see recon_tdr_filepath).
+
+  ! * tdr_offset_deconds; a FORTRAN 4-byte float value specifying the
+  !   minimum difference between the observation time offset values
+  !   (see tdr_min_offset_seconds and tdr_max_offset_seconds).
+  
   ! * tempdrop_compute_drift; a FORTRAN logical value specifying
   !   whether to estimate the sonde drift, and the respective
   !   geographical locations, from the collected TEMP-DROP formatted
@@ -242,6 +262,8 @@ module namelist_interface
   character(len=500)                                                    :: &
        & recon_filelist = 'NOT USED'
   character(len=500)                                                    :: &
+       & recon_tdr_filepath = 'NOT USED'
+  character(len=500)                                                    :: &
        & sonde_filelist = 'NOT USED'
   character(len=500)                                                    :: &
        & tcinfo_filename = 'NOT USED'
@@ -261,6 +283,8 @@ module namelist_interface
        & is_global = .false.
   logical                                                               :: &
        & is_recon = .false.  
+  logical                                                               :: &
+       & is_recon_tdr = .false.
   logical                                                               :: &
        & is_recon_vdm = .false. 
   logical                                                               :: &
@@ -287,6 +311,12 @@ module namelist_interface
        & sample_radius = spval
   real(r_kind)                                                          :: &
        & tc_radius = 600000.0
+  real(r_kind)                                                          :: &
+       & tdr_min_offset_seconds = 7200.0
+  real(r_kind)                                                          :: &
+       & tdr_max_offset_seconds = -7200.0
+  real(r_kind)                                                          :: &
+       & tdr_offset_dseconds = 1800.0
   namelist /share/    analdate, datapath, debug, is_fcst_model,            &
        & is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
@@ -294,7 +324,9 @@ module namelist_interface
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
        & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
        & is_regional, is_rotate_winds, sample_radius
-  namelist /recon/      is_recon_vdm, recon_filelist
+  namelist /recon/      is_recon_tdr, is_recon_vdm, recon_filelist,        &
+       & recon_tdr_filepath, tdr_min_offset_seconds,                       &
+       & tdr_max_offset_seconds, tdr_offset_dseconds
   namelist /sonde/      is_sonde_tempdrop, sonde_filelist,                 &
        & tempdrop_compute_drift, tempdrop_hsa_table_file,                  &
        & tempdrop_normalize, tempdrop_write_nc_skewt
@@ -470,9 +502,15 @@ contains
     write(6,*) 'SAMPLE_RADIUS                 = ', sample_radius
     write(6,*) '/'
     write(6,*) '&RECON'
+    write(6,*) 'IS_RECON_TDR                  = ', is_recon_tdr
     write(6,*) 'IS_RECON_VDM                  = ', is_recon_vdm
     write(6,*) 'RECON_FILELIST                = ',                         &
          & trim(adjustl(recon_filelist))
+    write(6,*) 'RECON_TDR_FILEPATH            = ',                         &
+         & trim(adjustl(recon_tdr_filepath))
+    write(6,*) 'TDR_MAX_OFFSET_SECONDS        = ', tdr_max_offset_seconds
+    write(6,*) 'TDR_MIN_OFFSET_SECONDS        = ', tdr_min_offset_seconds
+    write(6,*) 'TDR_OFFSET_DSECONDS           = ', tdr_offset_dseconds
     write(6,*) '/'    
     write(6,*) '&SONDE'
     write(6,*) 'IS_SONDE_TEMPDROP             = ', is_sonde_tempdrop
