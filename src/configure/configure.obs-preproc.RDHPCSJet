@@ -14,6 +14,8 @@ FCFFLAGS      = -O3 -mkl=sequential -mcmodel=large -Wl,-noinhibit-exec -convert 
  
 BUFR          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 FSON          = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+GRIDPROJS     = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
+GRIDTRANS     = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 KDTREE        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs
 NETCDF        = /apps/netcdf/4.2.1.1-intel
 SLATEC        = /mnt/lfs3/projects/hwrfv3/Henry.Winterbottom/software/nwp-libs

@@ -1,7 +1,7 @@
 &share
 analdate      = '2017-09-10_01:00:00'
 datapath      = './'
-debug         = F
+debug         = T
 is_fcst_model = T
 /
 
@@ -14,14 +14,16 @@ mask_ocean         = F
 /
 
 &fcst_mdl
-fv3_dyns_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_core.res.nest02.tile7.nc'
-fv3_orog_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/C96_oro_data.tile7.nc'
-fv3_static_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
-fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
-is_fv3              = T
-is_regional         = T
-is_rotate_winds     = T
-sample_radius       = 50000.0
+fv3_dyns_filename     = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_core.res.nest02.tile7.nc'
+fv3_gridspec_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/grid_spec.nest02.tile7.nc'
+fv3_orog_filename     = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/C96_oro_data.tile7.nc'
+fv3_static_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/atmos_static.nest02.tile7.nc'
+fv3_tracer_filename   = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-model/fv3/fv_tracer.res.nest02.tile7.nc'
+grid_ratio            = 4.0
+is_fv3                = T
+is_regional           = T
+is_rotate_winds       = T
+sample_radius         = 50000.0
 /
 
 &recon

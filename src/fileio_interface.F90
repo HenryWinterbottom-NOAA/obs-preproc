@@ -31,6 +31,8 @@ module fileio_interface
 
   ! Define associated modules and subroutines
 
+  use gridtrans_interface
+  use gridtrans_fv3_interface
   use json_interface
   use kinds_interface
   use namelist_interface
@@ -120,26 +122,33 @@ contains
 
   ! * fv3; a FORTRAN fv3_struct variable.
 
+  ! * windrotate; a FORTRAN windrotate variable.
+
   ! OUTPUT VARIABLES:
 
   ! * fv3; a FORTRAN fv3_struct variable containing both the contents
   !   for the ingested FV3 netcdf files and the variables computed
   !   from the respective ingested variables.
 
+  ! * windrotate; a FORTRAN windrotate variable containing the
+  !   coordinate rotation values to translate the forecast model winds
+  !   from model space to a Earth-relative coordinate system.  
+
   !-----------------------------------------------------------------------
 
-  subroutine read_fv3(fv3)
+  subroutine read_fv3(fv3,windrotate)
 
     ! Define variables passed to routine
 
-    type(fv3_struct)                                                    :: fv3  
+    type(fv3_struct)                                                    :: fv3
+    type(windrotate_struct)                                             :: windrotate
 
     !=====================================================================
 
     ! Check local variable and proceed accordingly
 
-    if(is_global)   call read_fv3_global(fv3)
-    if(is_regional) call read_fv3_regional(fv3)
+!    if(is_global)   call read_fv3_global(fv3)
+    if(is_regional) call read_fv3_regional(fv3,windrotate)
 
     !=====================================================================
     
@@ -189,6 +198,8 @@ contains
     real(r_kind),               dimension(:,:),             allocatable :: nc_real_2d
     real(r_kind),               dimension(:),               allocatable :: ak
     real(r_kind),               dimension(:),               allocatable :: bk
+    real(r_kind),               dimension(:),               allocatable :: lat
+    real(r_kind),               dimension(:),               allocatable :: lon
     integer                                                             :: stop_coord
     integer                                                             :: strt_coord
     integer                                                             :: nx
@@ -198,7 +209,7 @@ contains
     
     ! Define counting variables
 
-    integer                                                             :: i, j
+    integer                                                             :: i, j, k, l
     
     !=====================================================================    
 
@@ -221,7 +232,9 @@ contains
     if(.not. allocated(nc_real_3d)) allocate(nc_real_3d(nx,ny,fv3%nz))
     if(.not. allocated(nc_real_2d)) allocate(nc_real_2d(nx,ny))
     if(.not. allocated(ak))         allocate(ak(fv3%nz))
-    if(.not. allocated(bk))         allocate(bk(fv3%nz))   
+    if(.not. allocated(bk))         allocate(bk(fv3%nz))
+    if(.not. allocated(lat))        allocate(lat(fv3%ny))
+    if(.not. allocated(lon))        allocate(lon(fv3%nx))
     
     ! Loop through local variable
 
@@ -335,9 +348,9 @@ contains
           ! Define local variables
 
           zcoord                              = (fv3%nz - i) + 1       
-          fv3%u(strt_coord:stop_coord,zcoord) =                            &
+          fv3%ua(strt_coord:stop_coord,zcoord) =                           &
                & reshape(nc_real_3d(:,:,i),                                &
-               & shape(fv3%u(strt_coord:stop_coord,zcoord)))
+               & shape(fv3%ua(strt_coord:stop_coord,zcoord)))
 
        end do ! do i = 1, fv3%nz
        
@@ -355,7 +368,7 @@ contains
 
           zcoord = (fv3%nz - i) + 1 
           write(6,501), trim(adjustl(varname)), zcoord,                    &
-               & minval(fv3%u(:,zcoord)), maxval(fv3%u(:,zcoord))
+               & minval(fv3%ua(:,zcoord)), maxval(fv3%ua(:,zcoord))
 
        end do ! do i = 1, fv3%nz
 
@@ -381,9 +394,9 @@ contains
           ! Define local variables
 
           zcoord                              = (fv3%nz - i) + 1       
-          fv3%v(strt_coord:stop_coord,zcoord) =                            &
+          fv3%va(strt_coord:stop_coord,zcoord) =                           &
                & reshape(nc_real_3d(:,:,i),                                &
-               & shape(fv3%v(strt_coord:stop_coord,zcoord)))
+               & shape(fv3%va(strt_coord:stop_coord,zcoord)))
 
        end do ! do i = 1, fv3%nz
        
@@ -401,7 +414,7 @@ contains
 
           zcoord = (fv3%nz - i) + 1 
           write(6,501), trim(adjustl(varname)), zcoord,                    &
-               & minval(fv3%v(:,zcoord)), maxval(fv3%v(:,zcoord))
+               & minval(fv3%va(:,zcoord)), maxval(fv3%va(:,zcoord))
 
        end do ! do i = 1, fv3%nz
 
@@ -439,6 +452,10 @@ contains
        
     end do ! do j = 1, size(fv3_dyns_filename)
 
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+
     ! Define local variables
 
     if(debug) write(6,502) 'psfc', minval(fv3%psfc), maxval(fv3%psfc)    
@@ -448,6 +465,110 @@ contains
     varname = 'hybm'
     call netcdf_interface_getvar(fv3_static_filename,varname,bk)
 
+    ! Allocate memory for local variables
+
+    if(.not. allocated(nc_real_3d)) allocate(nc_real_3d(nx,(ny+1),fv3%nz))
+    
+    ! Loop through local variable
+
+    do j = 1, size(fv3_dyns_filename)
+
+       ! Define local variables
+
+       strt_coord = (j - 1)*(fv3%nx*fv3%ny) + 1
+       stop_coord = j*(fv3%nx*fv3%ny)
+       if(debug) write(6,500) trim(adjustl(fv3_dyns_filename(j)))
+       varname = 'u'
+       call netcdf_interface_getvar(fv3_dyns_filename(j),varname,          &
+            & nc_real_3d)
+    
+       ! Loop through local variable
+
+       do i = 1, fv3%nz
+
+          ! Define local variables
+
+          zcoord            = (fv3%nz - i) + 1       
+          fv3%u(:,:,zcoord) = nc_real_3d(:,:,i)
+
+       end do ! do i = 1, fv3%nz
+       
+    end do ! do j = 1, size(fv3_dyns_filename)      
+
+    ! Check local variable and proceed accordingly
+    
+    if(debug) then
+
+       ! Loop through local variable
+
+       do i = 1, fv3%nz
+
+          ! Define local variables
+
+          zcoord = (fv3%nz - i) + 1 
+          write(6,501), trim(adjustl(varname)), zcoord,                    &
+               & minval(fv3%u(:,:,zcoord)), maxval(fv3%u(:,:,zcoord))
+
+       end do ! do i = 1, fv3%nz
+
+    end if ! if(debug)
+
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(nc_real_3d)) allocate(nc_real_3d((nx+1),ny,fv3%nz))
+
+    ! Loop through local variable
+
+    do j = 1, size(fv3_dyns_filename)
+
+       ! Define local variables
+
+       strt_coord = (j - 1)*(fv3%nx*fv3%ny) + 1
+       stop_coord = j*(fv3%nx*fv3%ny)
+       if(debug) write(6,500) trim(adjustl(fv3_dyns_filename(j)))
+       varname = 'v'
+       call netcdf_interface_getvar(fv3_dyns_filename(j),varname,          &
+            & nc_real_3d)
+    
+       ! Loop through local variable
+
+       do i = 1, fv3%nz
+
+          ! Define local variables
+
+          zcoord            = (fv3%nz - i) + 1       
+          fv3%v(:,:,zcoord) = nc_real_3d(:,:,i)
+
+       end do ! do i = 1, fv3%nz
+       
+    end do ! do j = 1, size(fv3_dyns_filename)      
+
+    ! Check local variable and proceed accordingly
+    
+    if(debug) then
+
+       ! Loop through local variable
+
+       do i = 1, fv3%nz
+
+          ! Define local variables
+
+          zcoord = (fv3%nz - i) + 1 
+          write(6,501), trim(adjustl(varname)), zcoord,                    &
+               & minval(fv3%v(:,:,zcoord)), maxval(fv3%v(:,:,zcoord))
+
+       end do ! do i = 1, fv3%nz
+
+    end if ! if(debug)
+
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+    
     ! Loop through local variable
 
     do i = 1, fv3%nz
@@ -470,19 +591,35 @@ contains
 
        ! Define local variables
 
-       strt_coord                       = (i - 1)*(fv3%nx*fv3%ny) + 1
-       stop_coord                       = i*(fv3%nx*fv3%ny)
+       strt_coord = (i - 1)*(fv3%nx*fv3%ny) + 1
+       stop_coord = i*(fv3%nx*fv3%ny)
        if(debug) write(6,500) trim(adjustl(fv3_orog_filename(i)))
-       varname                          = 'geolat'
-       call netcdf_interface_getvar(fv3_orog_filename(i),varname,          &
-            & nc_real_2d)
-       fv3%lat(strt_coord:stop_coord)   =                                  &
-            & reshape(nc_real_2d,shape(fv3%lat(strt_coord:stop_coord)))
-       varname                          = 'geolon'
-       call netcdf_interface_getvar(fv3_orog_filename(i),varname,          &
-            & nc_real_2d)
-       fv3%lon(strt_coord:stop_coord)   =                                  &
-            & reshape(nc_real_2d,shape(fv3%lon(strt_coord:stop_coord)))
+       varname    = 'lat'
+       call netcdf_interface_getvar(fv3_orog_filename(i),varname,lat)
+       varname    = 'lon'
+       call netcdf_interface_getvar(fv3_orog_filename(i),varname,lon)
+       l          = strt_coord
+
+       ! Loop through local variable
+
+       do j = 1, fv3%ny
+
+          ! Loop through local variable
+
+          do k = 1, fv3%nx
+
+             ! Define local variables
+
+             fv3%lat(l) = lat(j)
+             fv3%lon(l) = lon(k)
+             l          = l + 1
+
+          end do ! do k = 1, fv3%nx
+
+       end do ! do j = 1, fv3%ny
+
+       ! Define local variables
+       
        varname                          = 'slmsk'
        call netcdf_interface_getvar(fv3_orog_filename(i),varname,          &
             & nc_real_2d)
@@ -493,8 +630,8 @@ contains
 
     ! Define local variables
     
-    if(debug) write(6,502) 'geolat', minval(fv3%lat), maxval(fv3%lat)
-    if(debug) write(6,502) 'geolon', minval(fv3%lon), maxval(fv3%lon)
+    if(debug) write(6,502) 'lat', minval(fv3%lat), maxval(fv3%lat)
+    if(debug) write(6,502) 'lon', minval(fv3%lon), maxval(fv3%lon)
     if(debug) write(6,502) 'slmsk', minval(fv3%slmsk), maxval(fv3%slmsk)
     
     ! Deallocate memory for local variables
@@ -503,6 +640,8 @@ contains
     if(allocated(nc_real_2d)) deallocate(nc_real_2d)
     if(allocated(ak))         deallocate(ak)
     if(allocated(bk))         deallocate(bk)
+    if(allocated(lat))        deallocate(lat)
+    if(allocated(lon))        deallocate(lon)
 
     ! Define local variables
 
@@ -537,22 +676,30 @@ contains
 
   ! * fv3; a FORTRAN fv3_struct variable.
 
+  ! * windrotate; a FORTRAN windrotate variable.
+
   ! OUTPUT VARIABLES:
 
   ! * fv3; a FORTRAN fv3_struct variable containing both the contents
   !   for the ingested FV3 netcdf files and the variables computed
   !   from the respective ingested variables.
 
+  ! * windrotate; a FORTRAN windrotate variable containing the
+  !   coordinate rotation values to translate the forecast model winds
+  !   from model space to a Earth-relative coordinate system.
+
   !-----------------------------------------------------------------------
 
-  subroutine read_fv3_regional(fv3)
+  subroutine read_fv3_regional(fv3,windrotate)
 
     ! Define variables passed to routine
 
     type(fv3_struct)                                                    :: fv3
+    type(windrotate_struct)                                             :: windrotate
 
     ! Define variables computed within routine
 
+    type(fv3_gridtrans_struct)                                          :: fv3_gridtrans
     character(len=100)                                                  :: dimname
     character(len=100)                                                  :: varname
     real(r_kind),               dimension(:,:,:),           allocatable :: nc_real_3d
@@ -645,11 +792,11 @@ contains
 
        ! Define local variables
 
-       zcoord          = (fv3%nz - i) + 1
-       fv3%u(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
-            & shape(fv3%u(:,zcoord)))
+       zcoord           = (fv3%nz - i) + 1       
+       fv3%ua(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%ua(:,zcoord)))
        if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
-            & minval(fv3%u(:,zcoord)), maxval(fv3%u(:,zcoord))
+            & minval(fv3%ua(:,zcoord)), maxval(fv3%ua(:,zcoord))
 
     end do ! do i = 1, fv3%nz
 
@@ -666,13 +813,13 @@ contains
 
        ! Define local variables
 
-       zcoord          = (fv3%nz - i) + 1
-       fv3%v(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
-            & shape(fv3%v(:,zcoord)))
+       zcoord           = (fv3%nz - i) + 1       
+       fv3%va(:,zcoord) = reshape(nc_real_3d(:,:,i),                        &
+            & shape(fv3%va(:,zcoord)))
        if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
-            & minval(fv3%v(:,zcoord)), maxval(fv3%v(:,zcoord))
+            & minval(fv3%va(:,zcoord)), maxval(fv3%va(:,zcoord))
 
-    end do ! do i = 1, fv3%nz
+    end do ! do i = 1, fv3%nz  
 
     ! Define local variables
 
@@ -695,6 +842,68 @@ contains
     ! Define local variables
 
     if(debug) write(6,502) 'psfc', minval(fv3%psfc), maxval(fv3%psfc)
+
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(nc_real_3d))                                        &
+         & allocate(nc_real_3d(fv3%nx,(fv3%ny + 1),fv3%nz))
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename(1)))
+    varname = 'u'
+    call netcdf_interface_getvar(fv3_dyns_filename(1),varname,             &
+         & nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord            = (fv3%nz - i) + 1       
+       fv3%u(:,:,zcoord) = nc_real_3d(:,:,i)
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%u(:,:,zcoord)), maxval(fv3%u(:,:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
+    
+    ! Allocate memory for local variables
+
+    if(.not. allocated(nc_real_3d))                                        &
+         & allocate(nc_real_3d((fv3%nx + 1),fv3%ny,fv3%nz))
+
+    ! Define local variables
+
+    if(debug) write(6,500) trim(adjustl(fv3_dyns_filename(1)))
+    varname = 'v'
+    call netcdf_interface_getvar(fv3_dyns_filename(1),varname,             &
+         & nc_real_3d)
+    
+    ! Loop through local variable
+
+    do i = 1, fv3%nz
+
+       ! Define local variables
+
+       zcoord            = (fv3%nz - i) + 1       
+       fv3%v(:,:,zcoord) = nc_real_3d(:,:,i)
+       if(debug) write(6,501), trim(adjustl(varname)), zcoord,             &
+            & minval(fv3%v(:,:,zcoord)), maxval(fv3%v(:,:,zcoord))
+
+    end do ! do i = 1, fv3%nz
+
+    ! Deallocate memory for local variables
+
+    if(allocated(nc_real_3d)) deallocate(nc_real_3d)
 
     ! Define local variables
 
@@ -722,18 +931,51 @@ contains
 
     ! Define local variables
 
-    if(debug) write(6,500) trim(adjustl(fv3_orog_filename(1)))
-    varname   = 'geolat'
-    call netcdf_interface_getvar(fv3_orog_filename(1),varname,nc_real_2d)
-    fv3%lat   = reshape(nc_real_2d,shape(fv3%lat))
-    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%lat),        &
-         & maxval(fv3%lat)
-    if(debug) write(6,500) trim(adjustl(fv3_orog_filename(1)))
-    varname   = 'geolon'
-    call netcdf_interface_getvar(fv3_orog_filename(1),varname,nc_real_2d)
-    fv3%lon   = reshape(nc_real_2d,shape(fv3%lon))
-    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%lon),        &
-         & maxval(fv3%lon)
+    fv3_gridtrans%nx         = fv3%nx
+    fv3_gridtrans%ny         = fv3%ny
+    call fv3_gridtrans_setup(fv3_gridtrans)
+    if(debug) write(6,500) trim(adjustl(fv3_gridspec_filename(1)))
+    varname                  = 'grid_lat'
+    call netcdf_interface_getvar(fv3_gridspec_filename(1),varname,         &
+         & fv3_gridtrans%lat)
+    varname                  = 'grid_latt'
+    call netcdf_interface_getvar(fv3_gridspec_filename(1),varname,         &
+         & fv3_gridtrans%latt)
+    varname                  = 'grid_lon'
+    call netcdf_interface_getvar(fv3_gridspec_filename(1),varname,         &
+         & fv3_gridtrans%lon)
+    varname                  = 'grid_lont'
+    call netcdf_interface_getvar(fv3_gridspec_filename(1),varname,         &
+         & fv3_gridtrans%lont)
+    fv3_gridtrans%grid_ratio = grid_ratio
+
+    ! Compute local variables
+
+    call fv3_gridtrans_anlgrid(fv3_gridtrans)
+
+    ! Define local variables
+
+    windrotate%nx = fv3_gridtrans%nx
+    windrotate%ny = fv3_gridtrans%ny
+    call windrotate_setup(windrotate)
+
+    ! Compute local variables
+
+    call fv3_windrotate_compute(fv3_gridtrans,windrotate)
+
+    ! Define local variables
+
+    fv3%lat = fv3_gridtrans%lat_in
+    if(debug) write(6,502) 'latitude', minval(fv3%lat), maxval(fv3%lat)
+    fv3%lon = fv3_gridtrans%lon_in
+    if(debug) write(6,502) 'longitude', minval(fv3%lon), maxval(fv3%lon)
+
+    ! Deallocate memory for local variables
+
+    call fv3_gridtrans_cleanup(fv3_gridtrans)
+    
+    ! Define local variables
+    
     if(debug) write(6,500) trim(adjustl(fv3_orog_filename(1)))
     varname   = 'slmsk'
     call netcdf_interface_getvar(fv3_orog_filename(1),varname,nc_real_2d)
