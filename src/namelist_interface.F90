@@ -64,6 +64,9 @@ module namelist_interface
   ! * debug; a FORTRAN logical value specifying whether to include
   !   debug information during execution.
 
+  !   Both is_fcst_model and is_fv3 must both be .true. for these
+  !   files to be invoked.
+
   ! * fv3_dyns_filename; an array of FORTRAN character strings
   !   specifying the path to the FV3 netcdf files containing the
   !   dynamical core variables; namely, the following netcdf
@@ -79,19 +82,22 @@ module namelist_interface
   !   + va; meridional wind on at the center of the grid cell (meters
   !         per second).
 
-  !   Both is_fcst_model and is_fv3 must both be .true. for these
-  !   files to be invoked.
-
-  ! * fv3_orog_filename; an array of FORTRAN character strings
-  !   specifying the path to the FV3 netcdf files containing the
-  !   orography and grid variables; namely the following netcdf
+  ! * fv3_gridspec_filename; an array of FORTRAN character strings
+  !   specifying th path to the FV3 netcdf files containing the grid
+  !   geographical coordinate values; namely the following netcdf
   !   variables:
 
-  !   + geolat; the latitude coordinate at the center of the grid cell
-  !     (degrees).
+  !   + lat; the grid cell corner latitude values.
 
-  !   + geolon; the longitude coordinate at the center of the grid
-  !     cell (degrees).
+  !   + latt; the grid cell center latitude values.
+  
+  !   + lon; the grid cell corner longitude values.
+
+  !   + lont; the grid cell center longitude values.
+  
+  ! * fv3_orog_filename; an array of FORTRAN character strings
+  !   specifying the path to the FV3 netcdf files containing the
+  !   orography; namely the following netcdf variables:
 
   !   + slmsk; the land/sea mask.
 
@@ -119,6 +125,9 @@ module namelist_interface
 
   !   Both is_fcst_model and is_fv3 must both be .true. for these
   !   files to be invoked.
+
+  ! * grid_ratio; a FORTRAN 4-byte float value specifying the
+  !   grid-refinement ratio; used only for nested grid tiles.
   
   ! * is_fcst_model; a FORTRAN logical value specifying whether the
   !   observations to be formatted are computed from forecast model
@@ -246,6 +255,8 @@ module namelist_interface
   character(len=500)                                                    :: &
        & fv3_dyns_filename(6) = 'NOT USED'
   character(len=500)                                                    :: &
+       & fv3_gridspec_filename(6) = 'NOT USED'
+  character(len=500)                                                    :: &
        & fv3_orog_filename(6) = 'NOT USED'
   character(len=500)                                                    :: &
        & fv3_tracer_filename(6) = 'NOT USED'  
@@ -308,6 +319,8 @@ module namelist_interface
   logical                                                               :: &
        & tempdrop_write_nc_skewt = .false.
   real(r_kind)                                                          :: &
+       & grid_ratio = 1.0
+  real(r_kind)                                                          :: &
        & sample_radius = spval
   real(r_kind)                                                          :: &
        & tc_radius = 600000.0
@@ -321,9 +334,10 @@ module namelist_interface
        & is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
        & mask_land, mask_ocean
-  namelist /fcst_mdl/   fv3_dyns_filename, fv3_orog_filename,              &
-       & fv3_static_filename, fv3_tracer_filename, is_fv3, is_global,      &
-       & is_regional, is_rotate_winds, sample_radius
+  namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
+       & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
+       & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
+       & sample_radius
   namelist /recon/      is_recon_tdr, is_recon_vdm, recon_filelist,        &
        & recon_tdr_filepath, tdr_min_offset_seconds,                       &
        & tdr_max_offset_seconds, tdr_offset_dseconds
@@ -484,6 +498,8 @@ contains
        
        write(6,*) 'FV3_DYNS_FILENAME             = ',                      &
             & trim(adjustl(fv3_dyns_filename(1)))
+       write(6,*) 'FV3_GRIDSPEC_FILENAME         = ',                      &
+            & trim(adjustl(fv3_gridspec_filename(1)))
        write(6,*) 'FV3_OROG_FILENAME             = ',                      &
             & trim(adjustl(fv3_orog_filename(1)))
        write(6,*) 'FV3_STATIC_FILENAME           = ',                      &
@@ -495,6 +511,7 @@ contains
 
     ! Define local variables
     
+    write(6,*) 'GRID_RATIO                    = ', grid_ratio
     write(6,*) 'IS_FV3                        = ', is_fv3
     write(6,*) 'IS_GLOBAL                     = ', is_global
     write(6,*) 'IS_REGIONAL                   = ', is_regional

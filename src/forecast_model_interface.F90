@@ -36,6 +36,7 @@ module forecast_model_interface
   use fileio_interface
   use grid_methods_interface
   use gridprojs_interface
+  use gridtrans_interface
   use kinds_interface
   use math_methods_interface
   use namelist_interface
@@ -86,6 +87,7 @@ contains
     type(tcinfo_struct),        dimension(:),               allocatable :: tcinfo
     type(fv3_struct)                                                    :: fv3
     type(grid_struct)                                                   :: grid
+    type(windrotate_struct)                                             :: windrotate
     
     ! Define counting variables
 
@@ -96,14 +98,25 @@ contains
     ! Define local variables
 
     call fileio_interface_read(tcinfo_filename,tcinfo)
-    call fileio_interface_read(fv3)
-
+    call fileio_interface_read(fv3,windrotate)
+    
     ! Check local variable and proceed accordingly
 
     if(is_global) grid%ncoords   = (size(fv3_orog_filename)*fv3%nx*fv3%ny)
     if(is_regional) grid%ncoords = (fv3%nx*fv3%ny)
-    call variable_interface_setup_struct(grid)
+
+    ! Define local variables
     
+    call variable_interface_setup_struct(grid)
+   
+    ! Check local variable and proceed accordingly
+    
+    if(is_rotate_winds) call rotate_winds(fv3,windrotate)
+
+    ! Deallocate memory for local variables
+
+    call windrotate_cleanup(windrotate)
+
     ! Allocate memory for local variables
 
     if(.not. allocated(fcstmdl)) allocate(fcstmdl(size(tcinfo)))
@@ -134,7 +147,7 @@ contains
     ! Deallocate memory for local variables
 
     if(allocated(tcinfo)) deallocate(tcinfo)
-    call variable_interface_cleanup_struct(grid)    
+    call variable_interface_cleanup_struct(grid)
 
     ! Define local variables
 
@@ -524,10 +537,6 @@ contains
 
     fv3_local = fv3
 
-    ! Check local variable and proceed accordingly
-
-    if(is_rotate_winds) call rotate_winds(fv3_local,dlat,dlon)
-
     ! Loop through local variable
 
     do i = 1, fcstmdl%nobs
@@ -537,8 +546,8 @@ contains
        fcstmdl%p(i,:)   = fv3_local%p(fcstmdl%idx(i),:)
        fcstmdl%q(i,:)   = fv3_local%q(fcstmdl%idx(i),:)
        fcstmdl%t(i,:)   = fv3_local%t(fcstmdl%idx(i),:)
-       fcstmdl%u(i,:)   = fv3_local%u(fcstmdl%idx(i),:)
-       fcstmdl%v(i,:)   = fv3_local%v(fcstmdl%idx(i),:)
+       fcstmdl%u(i,:)   = fv3_local%ua(fcstmdl%idx(i),:)
+       fcstmdl%v(i,:)   = fv3_local%va(fcstmdl%idx(i),:)
        fcstmdl%lat(i)   = fv3_local%lat(fcstmdl%idx(i)) + dlat
        fcstmdl%lon(i)   = fv3_local%lon(fcstmdl%idx(i)) + dlon
        fcstmdl%slmsk(i) = fv3_local%slmsk(fcstmdl%idx(i))
@@ -562,19 +571,16 @@ contains
   ! DESCRIPTION:
 
   ! This subroutine rotates the FV3 forecast model vector winds to an
-  ! Earth-relative rotation relative to a user specified fixed
-  ! geographical location.
+  ! Earth-relative rotation and interpolates the vector the FV3 grid
+  ! cell centers.
 
   ! INPUT VARIABLES:
 
   ! * fv3; a FORTRAN fv3_struct variable containing (at minimum) the
   !   model grid projection information.
 
-  ! * dlat; a FORTRAN 4-byte real-valued variable specifying the
-  !   offset latitude value.
-
-  ! * dlon; a FORTRAN 4-byte real-valued variable specifying the
-  !   offset latitude value.
+  ! * windrotate; a FORTRAN windrotate_struct variable containing the
+  !   rotation coefficients for the grid projection.
 
   ! OUTPUT VARIABLES:
 
@@ -584,65 +590,76 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine fv3_rotate_winds(fv3,dlat,dlon)
+  subroutine fv3_rotate_winds(fv3,windrotate)
 
     ! Define variables passed to routine
 
     type(fv3_struct)                                                    :: fv3
-    real(r_kind)                                                        :: dlat
-    real(r_kind)                                                        :: dlon
+    type(windrotate_struct)                                             :: windrotate
 
     ! Define variables computed within routine
 
-    real(r_double)                                                      :: flat
-    real(r_double)                                                      :: flon
-    real(r_double)                                                      :: tlat
-    real(r_double)                                                      :: tlon
-    real(r_double)                                                      :: crot
-    real(r_double)                                                      :: srot
-    real(r_kind),               dimension(:),               allocatable :: urot
-    real(r_kind),               dimension(:),               allocatable :: vrot
-    
+    real(r_kind),               dimension(:,:),             allocatable :: uwnd
+    real(r_kind),               dimension(:,:),             allocatable :: vwnd
+
     ! Define counting variables
 
-    integer                                                             :: i
-
+    integer                                                             :: i, j, k
+    
     !=====================================================================
 
     ! Allocate memory for local variables
 
-    if(.not. allocated(urot)) allocate(urot(fv3%nz))
-    if(.not. allocated(vrot)) allocate(vrot(fv3%nz))
-
+    if(.not. allocated(uwnd)) allocate(uwnd(fv3%nx,fv3%ny))
+    if(.not. allocated(vwnd)) allocate(vwnd(fv3%nx,fv3%ny))
+    
     ! Loop through local variable
 
-    do i = 1, fv3%ncoords
+    do k = 1, fv3%nz
+
+       ! Loop through local variable
+
+       do j = 1, fv3%ny
+
+          ! Loop through local variable
+
+          do i = 1, fv3%nx
+
+             ! Compute local variables
+
+             uwnd(i,j) = 0.5*((fv3%u(i,j,k)*windrotate%sangv(i,j) -        &
+                  & fv3%v(i,j,k)*windrotate%sangu(i,j))/                   &
+                  & (windrotate%cangu(i,j)*windrotate%sangv(i,j) -         &
+                  & windrotate%sangu(i,j)*windrotate%cangv(i,j)) +         &
+                  & (fv3%u(i,j+1,k)*windrotate%sangv(i+1,j) -              &
+                  & fv3%v(i+1,j,k)*windrotate%sangu(i,j+1))/               &
+                  & (windrotate%cangu(i,j+1)*windrotate%sangv(i+1,j) -     &
+                  & windrotate%sangu(i,j+1)*windrotate%cangv(i+1,j)))
+             vwnd(i,j) = 0.5*((fv3%u(i,j,k)*windrotate%cangv(i,j) -        &
+                  & fv3%v(i,j,k)*windrotate%cangu(i,j))/                   &
+                  & (windrotate%sangu(i,j)*windrotate%cangv(i,j) -         &
+                  & windrotate%cangu(i,j)*windrotate%sangv(i,j)) +         &
+                  & (fv3%u(i,j+1,k)*windrotate%cangv(i+1,j) -              &
+                  & fv3%v(i+1,j,k)*windrotate%cangu(i,j+1))/               &
+                  & (windrotate%sangu(i,j+1)*windrotate%cangv(i+1,j) -     &
+                  & windrotate%cangu(i,j+1)*windrotate%sangv(i+1,j)))
+             
+          end do ! do i = 1, fv3%nx
+
+       end do ! do j = 1, fv3%ny
 
        ! Define local variables
 
-       flat = dble(fv3%lat(i))
-       flon = dble(fv3%lon(i))
-       tlat = flat + dble(dlat)
-       tlon = flon + dble(dlon)
-
-       ! Compute local variables
+       fv3%ua(:,k) = reshape(uwnd,shape(fv3%ua(:,k)))
+       fv3%va(:,k) = reshape(vwnd,shape(fv3%va(:,k)))
        
-       call movect(flat,flon,tlat,tlon,crot,srot)
-       urot(:) = real(crot)*fv3%u(i,:) - real(srot)*fv3%v(i,:)
-       vrot(:) = real(srot)*fv3%u(i,:) + real(crot)*fv3%v(i,:)
-
-       ! Define local variables
-
-       fv3%u(i,:) = urot(:)
-       fv3%v(i,:) = vrot(:)
-
-    end do ! do i = 1, fcstmdl%nobs
-
+    end do ! do k = 1, fv3%nz
+       
     ! Deallocate memory for local variables
 
-    if(allocated(urot)) deallocate(urot)
-    if(allocated(vrot)) deallocate(vrot)
-
+    if(allocated(uwnd)) deallocate(uwnd)
+    if(allocated(vwnd)) deallocate(vwnd)
+    
     !=====================================================================
 
   end subroutine fv3_rotate_winds

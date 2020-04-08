@@ -150,12 +150,14 @@ module variable_interface
      integer                                                            :: nobs
      integer                                                            :: nz
   end type fcstmdl_struct         ! type fcstmdl_struct
-  type fv3_struct 
+  type fv3_struct
+     real(r_kind),              dimension(:,:,:),           allocatable :: u
+     real(r_kind),              dimension(:,:,:),           allocatable :: v
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
      real(r_kind),              dimension(:,:),             allocatable :: t
-     real(r_kind),              dimension(:,:),             allocatable :: u
-     real(r_kind),              dimension(:,:),             allocatable :: v
+     real(r_kind),              dimension(:,:),             allocatable :: ua
+     real(r_kind),              dimension(:,:),             allocatable :: va
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
      real(r_kind),              dimension(:),               allocatable :: psfc
@@ -484,11 +486,13 @@ contains
     
     ! Deallocate memory for local variables
 
+    if(allocated(grid%u))     deallocate(grid%u)
+    if(allocated(grid%v))     deallocate(grid%v)
     if(allocated(grid%p))     deallocate(grid%p)
     if(allocated(grid%q))     deallocate(grid%q)
     if(allocated(grid%t))     deallocate(grid%t)
-    if(allocated(grid%u))     deallocate(grid%u)
-    if(allocated(grid%v))     deallocate(grid%v)
+    if(allocated(grid%ua))    deallocate(grid%ua)
+    if(allocated(grid%va))    deallocate(grid%va)
     if(allocated(grid%lat))   deallocate(grid%lat)
     if(allocated(grid%lon))   deallocate(grid%lon)
     if(allocated(grid%psfc))  deallocate(grid%psfc)
@@ -533,7 +537,7 @@ contains
     
     !=====================================================================
 
-  end subroutine finalize_grid_struct   
+  end subroutine finalize_grid_struct
 
   !=======================================================================
 
@@ -1136,16 +1140,29 @@ contains
     if(grid%ncoords .le. 0) grid%ncoords = (grid%nx*grid%ny)
        
     ! Allocate memory for local variables
-
-    if(.not. allocated(grid%p))     allocate(grid%p(grid%ncoords,grid%nz))
-    if(.not. allocated(grid%q))     allocate(grid%q(grid%ncoords,grid%nz))
-    if(.not. allocated(grid%t))     allocate(grid%t(grid%ncoords,grid%nz))
-    if(.not. allocated(grid%u))     allocate(grid%u(grid%ncoords,grid%nz))
-    if(.not. allocated(grid%v))     allocate(grid%v(grid%ncoords,grid%nz))
-    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%ncoords))
-    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%ncoords))
-    if(.not. allocated(grid%psfc))  allocate(grid%psfc(grid%ncoords))
-    if(.not. allocated(grid%slmsk)) allocate(grid%slmsk(grid%ncoords))
+    
+    if(.not. allocated(grid%u))                                            &
+         & allocate(grid%u(grid%nx,(grid%ny+1),grid%nz))
+    if(.not. allocated(grid%v))                                            &
+         & allocate(grid%v((grid%nx+1),grid%ny,grid%nz))    
+    if(.not. allocated(grid%p))                                            &
+         & allocate(grid%p(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%q))                                            &
+         & allocate(grid%q(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%t))                                            &
+         & allocate(grid%t(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%ua))                                           &
+         & allocate(grid%ua(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%va))                                           &
+         & allocate(grid%va(grid%ncoords,grid%nz))
+    if(.not. allocated(grid%lat))                                          &
+         & allocate(grid%lat(grid%ncoords))
+    if(.not. allocated(grid%lon))                                          &
+         & allocate(grid%lon(grid%ncoords))
+    if(.not. allocated(grid%psfc))                                         &
+         & allocate(grid%psfc(grid%ncoords))
+    if(.not. allocated(grid%slmsk))                                        &
+         & allocate(grid%slmsk(grid%ncoords))
 
     !=====================================================================
 
