@@ -31,6 +31,7 @@ module observations_interface
 
   ! Define associated modules and subroutines
 
+  use bufr_obs_interface
   use forecast_model_interface
   use kinds_interface
   use namelist_interface
@@ -67,6 +68,7 @@ contains
 
     ! Check local variable and proceed accordingly
 
+    if(is_bufr_obs)   call bufr_obs_update()
     if(is_fcst_model) call obs_fcst_model()
     if(is_recon)      call obs_recon()
     if(is_sonde)      call obs_sonde()

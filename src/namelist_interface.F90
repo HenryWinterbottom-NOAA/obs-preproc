@@ -261,6 +261,8 @@ module namelist_interface
   character(len=500)                                                    :: &
        & fv3_tracer_filename(6) = 'NOT USED'  
   character(len=500)                                                    :: &
+       & bufr_obs_filename(2) = 'NOT USED' ! NEED
+  character(len=500)                                                    :: &
        & bufr_filepath = 'NOT USED'
   character(len=500)                                                    :: &
        & bufr_info_filepath = 'NOT USED'
@@ -284,8 +286,14 @@ module namelist_interface
        & wmm_coeff_filepath = 'NOT USED'
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
+  character(len=19)                                                     :: &
+       & bufr_obs_maxdate = '2000-01-01_00:00:00' ! NEED
+  character(len=19)                                                     :: &
+       & bufr_obs_mindate = '2000-01-01_00:00:00' ! NEED
   logical                                                               :: &
        & debug = .false.
+  logical                                                               :: &
+       & is_bufr_obs = .false. ! NEED
   logical                                                               :: &
        & is_fcst_model = .false.
   logical                                                               :: &
@@ -330,10 +338,11 @@ module namelist_interface
        & tdr_max_offset_seconds = -7200.0
   real(r_kind)                                                          :: &
        & tdr_offset_dseconds = 1800.0
-  namelist /share/    analdate, datapath, debug, is_fcst_model,            &
-       & is_recon, is_sonde
-  namelist /bufrio/     bufr_filepath, bufr_info_filepath, bufr_tblpath,   &
-       & mask_land, mask_ocean
+  namelist /share/      analdate, datapath, debug, is_bufr_obs,            &
+       & is_fcst_model, is_recon, is_sonde
+  namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
+       & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
+       & bufr_tblpath, mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
