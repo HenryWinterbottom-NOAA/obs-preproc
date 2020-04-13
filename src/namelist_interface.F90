@@ -253,6 +253,8 @@ module namelist_interface
   ! Define local variables
 
   character(len=500)                                                    :: &
+       & bufr_obs_filename(10) = 'NOT USED' ! NEED
+  character(len=500)                                                    :: &
        & fv3_dyns_filename(6) = 'NOT USED'
   character(len=500)                                                    :: &
        & fv3_gridspec_filename(6) = 'NOT USED'
@@ -260,8 +262,6 @@ module namelist_interface
        & fv3_orog_filename(6) = 'NOT USED'
   character(len=500)                                                    :: &
        & fv3_tracer_filename(6) = 'NOT USED'  
-  character(len=500)                                                    :: &
-       & bufr_obs_filename(2) = 'NOT USED' ! NEED
   character(len=500)                                                    :: &
        & bufr_filepath = 'NOT USED'
   character(len=500)                                                    :: &
@@ -301,6 +301,8 @@ module namelist_interface
   logical                                                               :: &
        & is_global = .false.
   logical                                                               :: &
+       & is_prepbufr = .false. ! NEED
+  logical                                                               :: &
        & is_recon = .false.  
   logical                                                               :: &
        & is_recon_tdr = .false.
@@ -312,6 +314,8 @@ module namelist_interface
        & is_relocate = .false.
   logical                                                               :: &
        & is_rotate_winds = .false.
+  logical                                                               :: &
+       & is_satbufr = .false. ! NEED  
   logical                                                               :: &
        & is_sonde = .false.
   logical                                                               :: &
@@ -338,11 +342,13 @@ module namelist_interface
        & tdr_max_offset_seconds = -7200.0
   real(r_kind)                                                          :: &
        & tdr_offset_dseconds = 1800.0
+  integer                                                               :: &
+       & nbufr_obs_files = 0
   namelist /share/      analdate, datapath, debug, is_bufr_obs,            &
        & is_fcst_model, is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
        & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
-       & bufr_tblpath, mask_land, mask_ocean
+       & bufr_tblpath, is_prepbufr, is_satbufr, mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
@@ -413,6 +419,23 @@ contains
        read(unit_nml,NML = tc)
        read(unit_nml,NML = wmm)
        close(unit_nml)
+
+       ! Loop through local variable
+
+       do i = 1, size(bufr_obs_filename)
+
+          ! Check local variable and proceed accordingly
+
+          if(trim(adjustl(bufr_obs_filename(i))) .ne. 'NOT USED') then
+
+             ! Define local variables
+
+             nbufr_obs_files = nbufr_obs_files + 1
+
+          end if ! if(trim(adjustl(bufr_obs_filename(i))) .ne. 'NOT
+                 ! USED')
+
+       end do ! do i = 1, size(bufr_obs_filename)
 
     else  ! if(is_it_there)
 

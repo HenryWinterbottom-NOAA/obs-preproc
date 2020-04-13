@@ -43,10 +43,11 @@ module bufr_obs_interface
 
   ! Define local variables
 
+  logical                                                               :: in_bufr_open  = .false.
+  logical                                                               :: out_bufr_open = .false.
   integer                                                               :: iret
-  integer, parameter                                                    :: unit_in  = 10
-  integer, parameter                                                    :: unit_out = 20
-  integer, parameter                                                    :: unit_tbl = 30
+  integer, parameter                                                    :: unit_in       = 10
+  integer, parameter                                                    :: unit_out      = 20
   
   !-----------------------------------------------------------------------
 
@@ -60,7 +61,9 @@ contains
 
   ! DESCRIPTION:
 
-  !
+  ! This is the driver-level subroutine to compute the temporal window
+  ! for which to parse observations and to subsequently write those
+  ! respective observations to an external BUFR-formatted file.
 
   !-----------------------------------------------------------------------
 
@@ -70,34 +73,19 @@ contains
 
     type(timeinfo_struct)                                               :: timeinfo
     
-    ! Define counting variables
-
-    integer                                                             :: i
-    
     !=====================================================================
 
     ! Define local variables
 
     call valid_times(timeinfo)
-    call init_bufr(bufr_obs_filename(1))
     
-    ! Loop through local variables
-
-    do i = 1, size(bufr_obs_filename)
+    ! Compute local variables
     
-       ! Define local variables
-
-       call readwrite_bufrobs(bufr_obs_filename(i),timeinfo)
-
-    end do ! do i = 1, size(bufr_obs_filename)
-
-    ! Define local variables
-
-    call close_bufr()
+    call readwrite_bufrobs(bufr_obs_filename,timeinfo)
 
     !=====================================================================
 
-  end subroutine bufr_obs_update
+  end subroutine bufr_obs_update  
 
   !=======================================================================
 
@@ -118,8 +106,10 @@ contains
     
     ! Define local variables
 
+    close(unit_in)
+    call closbf(unit_in)
+    close(unit_out)
     call closbf(unit_out)
-    close(unit_tbl)
     
     !=====================================================================
 
@@ -133,12 +123,9 @@ contains
 
   ! DESCRIPTION:
 
-  ! This subroutine initializes the BUFR interfaces; this subroutine
-  ! writes the BUFR table, parsed from an existing BUFR-formatted
-  ! file, to an external file specified by the user; the external
-  ! file, specified by the user, remains open unless the subroutine
-  ! close_bufr.f90 is called.
-
+  ! This subroutine initializes the BUFR file interfaces for the input
+  ! and output files.
+  
   ! INPUT VARIABLES:
   
   ! * filename; a FORTRAN character string specifying the full-path to
@@ -156,19 +143,26 @@ contains
 
     ! Define local variables
 
+    call datelen(10)
+    if(in_bufr_open) call closbf(unit_in)
     open(unit_in,file=trim(adjustl(filename)),form='unformatted',          &
-         & convert='big_endian')
-    open(unit_tbl,file=trim(adjustl(datapath))//'bufr_tbl',                &
-         & action='write')
+         & status='old')
     call openbf(unit_in,'IN',unit_in)
-    call dxdump(unit_in,unit_tbl)
-    close(unit_tbl)
-    call closbf(unit_in)
-    open(unit_tbl,file=trim(adjustl(datapath))//'bufr_tbl',action='read')
-    open(unit_out,file=trim(adjustl(bufr_filepath)),action='write',form=   &
-         & 'unformatted',convert='big_endian')
-    call openbf(unit_out,'OUT',unit_tbl)
- 
+    in_bufr_open = .true.
+    
+    ! Check local variable and proceed accordingly
+    
+    if(.not. out_bufr_open) then
+
+       ! Define local variables
+
+       open(unit_out,file=trim(adjustl(bufr_filepath)),                    &
+            & form='unformatted')
+       call openbf(unit_out,'OUT',unit_in)
+       out_bufr_open = .true.
+
+    end if ! if(.not. out_bufr_open)
+    
     !=====================================================================  
 
   end subroutine init_bufr
@@ -204,7 +198,7 @@ contains
     ! Define variables passed to routine
 
     type(timeinfo_struct)                                               :: timeinfo
-    character(len=500)                                                  :: filename
+    character(len=500)                                                  :: filename(:)
 
     ! Define variables computed within routine
 
@@ -215,66 +209,122 @@ contains
     integer                                                             :: dd
     integer                                                             :: hh    
     integer                                                             :: idate
-    integer                                                             :: ibfmsg(16000/4)
     integer                                                             :: ireadmg
     integer                                                             :: ireadsb
     integer                                                             :: mm
     integer                                                             :: nn
+    integer                                                             :: nobs_copy
+    integer                                                             :: nobs_total
+    integer                                                             :: obs_idate
     integer                                                             :: ss
     integer                                                             :: yyyy
+    
+    ! Define counting variables
+
+    integer                                                             :: i
     
     !=====================================================================
     
     ! Define local variables
 
-    open(unit_in,file=trim(adjustl(filename)),form='unformatted',            &
-         & convert='big_endian')
-    call openbf(unit_in,'IN',unit_in)
+    nobs_copy  = 0
+    nobs_total = 0
 
     ! Loop through local variable
 
-    msg_report: do while(ireadmg(unit_in,subset,idate) .eq. 0)
+    do i = 1, nbufr_obs_files
 
+       ! Define local variables
+
+       if(debug) write(6,500) trim(adjustl(filename(i)))
+       call init_bufr(filename(i))
+    
        ! Loop through local variable
 
-       sb_report: do while(ireadsb(unit_in) .eq. 0)
+       do while(ireadmg(unit_in,subset,idate) .eq. 0)
 
           ! Define local variables
 
-          call ufbint(unit_in,bufrtype,size(bufrtype),1,iret,                &
-               & 'YEAR MNTH DAYS HOUR MINU SECO')
-          yyyy = int(bufrtype(1))
-          mm   = int(bufrtype(2))
-          dd   = int(bufrtype(3))
-          hh   = int(bufrtype(4))
-          nn   = int(bufrtype(5))
-          ss   = int(bufrtype(6))
-
-          ! Compute local variables
-
-          call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,obs_jday)
-
-          ! Check local variable and proceed accordingly
-
-          if((obs_jday .ge. timeinfo%minjday) .and. (obs_jday .le.           &
-               & timeinfo%maxjday)) then 
-
-             ! Define local variables
-
-             call openmb(unit_out,subset,idate)
-             call writsb(unit_out)
-             call closmg(unit_out)
+          call openmb(unit_out,subset,timeinfo%idate)
           
-          end if ! if((obs_jday .ge. timeinfo%minjday) .and. (obs_jday
-                 ! .le. timeinfo%maxjday))
+          ! Loop through local variable
+
+          do while(ireadsb(unit_in) .eq. 0)
+                
+             ! Define local variables
              
-       end do sb_report ! do while(ireadsb(unit_in) .eq. 0)
+             nobs_total = nobs_total + 1
+             
+             ! Check local variable and proceed accordingly
 
-    end do msg_report ! do while(ireadmg(unit_in,subset,idate) .eq. 0)
+             if(is_prepbufr) then
 
-    ! Define local variables
+                ! Define local variables
+             
+                call ufbint(unit_in,bufrtype,2,1,iret,'DHR TYP')
+                write(datestr,'(i10)') idate
+                read(datestr,'(i4.4,3(i2.2))') yyyy, mm, dd, hh
+                nn = 0
+                ss = 0
+             
+                ! Compute local variables
+
+                call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,          &
+                     & obs_jday)
+                obs_jday = obs_jday + bufrtype(1)/24.0
+                
+             end if ! if(is_prepbufr)
+             
+             ! Check local variable and proceed accordingly
+             
+             if(is_satbufr) then
+          
+                ! Define local variables
+
+                call ufbint(unit_in,bufrtype,size(bufrtype),1,iret,        &
+                     & 'YEAR MNTH DAYS HOUR MINU SECO')
+                yyyy = int(bufrtype(1))
+                mm   = int(bufrtype(2))
+                dd   = int(bufrtype(3))
+                hh   = int(bufrtype(4))
+                nn   = int(bufrtype(5))
+                ss   = int(bufrtype(6))
+
+                ! Compute local variables
+
+                call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,          &
+                     & obs_jday)
+
+             end if ! if(is_satbufr)
+             
+             ! Check local variable and proceed accordingly
+
+             if((obs_jday .ge. timeinfo%minjday) .and. (obs_jday .le.      &
+                  & timeinfo%maxjday)) then 
+                
+                ! Define local variables
+
+                nobs_copy = nobs_copy + 1
+                call ufbcpy(unit_in,unit_out)
+                call writsb(unit_out)
+                
+             end if ! if((obs_jday .ge. timeinfo%minjday)
+                    ! .and. (obs_jday .le. timeinfo%maxjday))
+                
+          end do  ! do while(ireadsb(unit_in) .eq. 0)
+          
+       end do  ! do while(ireadmg(unit_in,subset,idate) .eq. 0)
+       
+    end do ! do i = 1, nbufr_obs_files
     
-    call closbf(unit_in)
+    ! Define local variables
+
+    call close_bufr()
+    if(debug) write(6,501) nobs_copy, nobs_total, bufr_obs_mindate,        &
+         & bufr_obs_maxdate
+500 format('READWRITE_BUFROBS: Reading BUFR file ',a,'.')
+501 format('READWRITE_BUFROBS: ',i,1x,'observations of ',i,1x,' are ',     &
+         & 'within the time-window ',a19,1x,'to ',a19,1x,'.')
     
     !=====================================================================
 
@@ -322,6 +372,9 @@ contains
 
     ! Define local variables
 
+    call time_methods_date_attributes(analdate,yyyy,mm,dd,hh,nn,ss)
+    write(timeinfo%idatestr,'(i4.4,i2.2,i2.2,i2.2)') yyyy, mm, dd, hh
+    read(timeinfo%idatestr,'(i10)') timeinfo%idate
     call time_methods_date_attributes(bufr_obs_mindate,yyyy,mm,dd,hh,nn,   &
          & ss)
     call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,timeinfo%minjday)

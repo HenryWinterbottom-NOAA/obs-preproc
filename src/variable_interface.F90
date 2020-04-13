@@ -304,8 +304,10 @@ module variable_interface
      integer                                                            :: nstmid
   end type tdr_struct             ! type tdr_struct
   type timeinfo_struct
+     character(len=10)                                                  :: idatestr
      real(r_double)                                                     :: maxjday
      real(r_double)                                                     :: minjday
+     integer                                                            :: idate
   end type timeinfo_struct        ! type timeinfo_struct
   type topogrid_struct
      real(r_kind),              dimension(:),               allocatable :: lat
