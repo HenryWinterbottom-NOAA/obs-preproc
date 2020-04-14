@@ -57,6 +57,7 @@ module variable_interface
   public :: statgrid_struct
   public :: tcinfo_struct
   public :: tdr_struct
+  public :: timeinfo_struct
   public :: topogrid_struct
   public :: variable_interface_cleanup_struct
   public :: variable_interface_setup_struct
@@ -108,12 +109,6 @@ module variable_interface
   real(r_kind),   parameter                                             :: vdm_spval  = -9.e30
   integer,        parameter                                             :: bufr_mxlv  = 200
   integer,        parameter                                             :: bufr_mxmn  = 35
-  type bufr_info_struct
-     character(len=500)                                                 :: filename
-     character(len=8)                                                   :: subset
-     integer                                                            :: obs_type_mass
-     integer                                                            :: obs_type_wind
-  end type bufr_info_struct       ! type bufr_info_struct  
   type bufr_struct
      character(len=80)                                                  :: obstr
      character(len=80)                                                  :: hdstr
@@ -130,7 +125,13 @@ module variable_interface
      integer                                                            :: mxlv
      integer                                                            :: nrecs
   end type bufr_struct            ! type bufr_struct
-  type bufrhdr_struct
+  type bufr_info_struct
+     character(len=500)                                                 :: filename
+     character(len=8)                                                   :: subset
+     integer                                                            :: obs_type_mass
+     integer                                                            :: obs_type_wind
+  end type bufr_info_struct       ! type bufr_info_struct
+   type bufrhdr_struct
      real(r_double),            dimension(:,:),             allocatable :: hdr
      integer                                                            :: mxmn
      integer                                                            :: nrecs     
@@ -302,6 +303,13 @@ module variable_interface
      integer,                   dimension(:),               allocatable :: nrecs
      integer                                                            :: nstmid
   end type tdr_struct             ! type tdr_struct
+  type timeinfo_struct
+     character(len=10)                                                  :: idatestr
+     real(r_double)                                                     :: jday
+     real(r_double)                                                     :: maxjday
+     real(r_double)                                                     :: minjday
+     integer                                                            :: idate
+  end type timeinfo_struct        ! type timeinfo_struct
   type topogrid_struct
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
@@ -1018,7 +1026,7 @@ contains
     !=====================================================================
 
   end subroutine initialize_bufr_struct
-
+  
   !=======================================================================
 
   ! SUBROUTINE:
