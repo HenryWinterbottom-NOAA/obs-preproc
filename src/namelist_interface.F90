@@ -53,6 +53,20 @@ module namelist_interface
   !   the full-path to the external file containing the BUFR
   !   information for the respective observation type.
 
+  ! * bufr_obs_filename; an array of FORTRAN character strings
+  !   specifying the path to the BUFR-formatted files to be used to
+  !   create the time-centered observations BUFR-formatted file.
+
+  ! * bufr_obs_maxdate; a FORTRAN character string specifying the
+  !   maximum observation time for all time-centered observation
+  !   collected from bufr_obs_filename (see above); formatted as,
+  !   assuming UNIX convention, ccyy-mm-dd_HH:MM:SS.
+
+  ! * bufr_obs_mindate; a FORTRAN character string specifying the
+  !   minimum observation time for all time-centered observation
+  !   collected from bufr_obs_filename (see above); formatted as,
+  !   assuming UNIX convention, ccyy-mm-dd_HH:MM:SS.
+  
   ! * bufr_tblpath; a FORTRAN character string specifying the
   !   full-path to the external file containing the BUFR table to be
   !   written (or appended) to the output BUFR file. 
@@ -128,6 +142,11 @@ module namelist_interface
 
   ! * grid_ratio; a FORTRAN 4-byte float value specifying the
   !   grid-refinement ratio; used only for nested grid tiles.
+
+  ! * is_bufrobs; a FORTRAN logical value specifying whether to
+  !   created BUFR-formatted observation files using the
+  !   bufr_obs_filename (see above) values and the values for
+  !   bufr_obs_maxdate and bufr_obs_mindate (see above).
   
   ! * is_fcst_model; a FORTRAN logical value specifying whether the
   !   observations to be formatted are computed from forecast model
@@ -141,6 +160,15 @@ module namelist_interface
   ! * is_global; a FORTRAN logical value specifying whether the
   !   ingested fields are from a global forecast model; applies only
   !   if is_fcst_model is .true..
+
+  ! * is_gpsrobufr; a FORTRAN logical value specifying that the
+  !   time-centered observations are for Global Position System (GPS)
+  !   Radio Occultation (RO) observations; see is_bufrobs (above) and
+  !   bufr_obs_filename (above).
+  
+  ! * is_prepbufr; a FORTRAN logical value specifying that the
+  !   time-centered observations are for a prepbufr-type observation
+  !   file; see is_bufrobs (above) and bufr_obs_filename (above).
 
   ! * is_recon; a FORTRAN logical variable specifying whether the
   !   observations to be formatted are derived from reconnissance-type
@@ -165,6 +193,11 @@ module namelist_interface
   ! * is_rotate_winds; a FORTRAN logical value specifying whether to
   !   rotate forecast model vector winds to an Earth-relative rotation
   !   relative to a user specified geographical location.
+  
+  ! * is_satbufr; a FORTRAN logical value specifying that the
+  !   time-centered observations are for a satellite observation
+  !   bufr-type files; see is_bufrobs (above) and bufr_obs_filename
+  !   (above).
   
   ! * is_sonde; a FORTRAN logical value specifying whether the
   !   observations to be formatted are derived from sondes.
@@ -253,7 +286,7 @@ module namelist_interface
   ! Define local variables
 
   character(len=500)                                                    :: &
-       & bufr_obs_filename(10) = 'NOT USED' ! NEED
+       & bufr_obs_filename(10) = 'NOT USED'
   character(len=500)                                                    :: &
        & fv3_dyns_filename(6) = 'NOT USED'
   character(len=500)                                                    :: &
@@ -287,13 +320,13 @@ module namelist_interface
   character(len=19)                                                     :: &
        & analdate = '2000-01-01_00:00:00'
   character(len=19)                                                     :: &
-       & bufr_obs_maxdate = '2000-01-01_00:00:00' ! NEED
+       & bufr_obs_maxdate = '2000-01-01_00:00:00'
   character(len=19)                                                     :: &
-       & bufr_obs_mindate = '2000-01-01_00:00:00' ! NEED
+       & bufr_obs_mindate = '2000-01-01_00:00:00'
   logical                                                               :: &
        & debug = .false.
   logical                                                               :: &
-       & is_bufr_obs = .false. ! NEED
+       & is_bufr_obs = .false.
   logical                                                               :: &
        & is_fcst_model = .false.
   logical                                                               :: &
@@ -301,7 +334,9 @@ module namelist_interface
   logical                                                               :: &
        & is_global = .false.
   logical                                                               :: &
-       & is_prepbufr = .false. ! NEED
+       & is_gpsrobufr = .false.
+  logical                                                               :: &
+       & is_prepbufr = .false.
   logical                                                               :: &
        & is_recon = .false.  
   logical                                                               :: &
@@ -315,7 +350,7 @@ module namelist_interface
   logical                                                               :: &
        & is_rotate_winds = .false.
   logical                                                               :: &
-       & is_satbufr = .false. ! NEED  
+       & is_satbufr = .false.  
   logical                                                               :: &
        & is_sonde = .false.
   logical                                                               :: &
@@ -348,7 +383,8 @@ module namelist_interface
        & is_fcst_model, is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
        & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
-       & bufr_tblpath, is_prepbufr, is_satbufr, mask_land, mask_ocean
+       & bufr_tblpath, is_gpsrobufr, is_prepbufr, is_satbufr, mask_land,   &
+       & mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
@@ -391,7 +427,7 @@ contains
 
     integer                                                             :: i
 
-    !=================================================================== 
+    !===================================================================== 
 
     ! Define local variables
 
@@ -453,6 +489,7 @@ contains
     write(6,*) 'DATAPATH                      = ',                         &
          & trim(adjustl(datapath))
     write(6,*) 'DEBUG                         = ', debug
+    write(6,*) 'IS_BUFR_OBS                   = ', is_bufr_obs
     write(6,*) 'IS_FCST_MODEL                 = ', is_fcst_model
     write(6,*) 'IS_RECON                      = ', is_recon
     write(6,*) 'IS_SONDE                      = ', is_sonde
@@ -462,8 +499,27 @@ contains
          & trim(adjustl(bufr_filepath))
     write(6,*) 'BUFR_INFO_FILEPATH            = ',                         & 
          & trim(adjustl(bufr_info_filepath))
+    write(6,*) 'BUFR_OBS_FILENAME             = '
+
+    ! Loop through local variable
+
+    do i = 1, nbufr_obs_files
+
+       ! Define local variables
+       
+       write(6,*) trim(adjustl(bufr_obs_filename(i)))
+
+    end do ! do i = 1, nbufr_obs_files
+
+    ! Define local variables
+
+    write(6,*) 'BUFR_OBS_MAXDATE              = ', bufr_obs_maxdate
+    write(6,*) 'BUFR_OBS_MINDATE              = ', bufr_obs_mindate
     write(6,*) 'BUFR_TBLPATH                  = ',                         &
          & trim(adjustl(bufr_tblpath))
+    write(6,*) 'IS_GPSROBUFR                  = ', is_gpsrobufr
+    write(6,*) 'IS_PREPBUFR                   = ', is_prepbufr
+    write(6,*) 'IS_SATBUFR                    = ', is_satbufr    
     write(6,*) 'MASK_LAND                     = ', mask_land
     write(6,*) 'MASK_OCEAN                    = ', mask_ocean    
     write(6,*) '/'
@@ -582,11 +638,12 @@ contains
     write(6,*) '&WMM'
     write(6,*) 'WMM_COEFF_FILEPATH            = ',                         &
          & trim(adjustl(wmm_coeff_filepath))
-    write(6,*) '/'    
+    write(6,*) '/'
+    write(6,*) ''
 500 format('NAMELISTPARAMS: ', a, ' not found in the current working ',    &
          & 'directory. ABORTING!!!!')
     
-    !===================================================================
+    !=====================================================================
 
   end subroutine namelist
 

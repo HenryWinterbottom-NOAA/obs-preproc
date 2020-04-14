@@ -205,6 +205,7 @@ contains
     character(len=10)                                                   :: datestr
     character(len=8)                                                    :: subset
     real(r_double)                                                      :: bufrtype(6)   
+    real(r_double)                                                      :: dhr
     real(r_double)                                                      :: obs_jday
     integer                                                             :: dd
     integer                                                             :: hh    
@@ -246,6 +247,7 @@ contains
           ! Define local variables
 
           call openmb(unit_out,subset,timeinfo%idate)
+          if(is_gpsrobufr) call maxout(100000)
           
           ! Loop through local variable
 
@@ -254,6 +256,28 @@ contains
              ! Define local variables
              
              nobs_total = nobs_total + 1
+
+             ! Check local variable and proceed accordingly
+
+             if(is_gpsrobufr) then
+
+                ! Define local variables
+
+                call ufbint(unit_in,bufrtype,size(bufrtype),1,iret,        &
+                     & 'YEAR MNTH DAYS HOUR MINU SECO')
+                yyyy = int(bufrtype(1))
+                mm   = int(bufrtype(2))
+                dd   = int(bufrtype(3))
+                hh   = int(bufrtype(4))
+                nn   = int(bufrtype(5))
+                ss   = int(bufrtype(6))
+
+                ! Compute local variables
+
+                call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,          &
+                     & obs_jday)
+                
+             end if ! if(is_gpsrobufr)
              
              ! Check local variable and proceed accordingly
 
@@ -266,7 +290,7 @@ contains
                 read(datestr,'(i4.4,3(i2.2))') yyyy, mm, dd, hh
                 nn = 0
                 ss = 0
-             
+                
                 ! Compute local variables
 
                 call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,          &
@@ -305,7 +329,28 @@ contains
                 ! Define local variables
 
                 nobs_copy = nobs_copy + 1
+                
+                ! Define local variables
+                
                 call ufbcpy(unit_in,unit_out)
+
+                ! Check local variable and proceed accordingly
+
+                if(is_prepbufr) then
+
+                   ! Compute local variables
+
+                   dhr = (timeinfo%jday - obs_jday)/24.0
+
+                   ! Define local variables
+
+                   bufrtype(1) = dhr
+                   call ufbint(unit_out,bufrtype(1),1,1,iret,'DHR')
+                   
+                end if ! if(is_prepbufr)
+
+                ! Define local variables
+
                 call writsb(unit_out)
                 
              end if ! if((obs_jday .ge. timeinfo%minjday)
@@ -373,6 +418,7 @@ contains
     ! Define local variables
 
     call time_methods_date_attributes(analdate,yyyy,mm,dd,hh,nn,ss)
+    call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,timeinfo%jday)
     write(timeinfo%idatestr,'(i4.4,i2.2,i2.2,i2.2)') yyyy, mm, dd, hh
     read(timeinfo%idatestr,'(i10)') timeinfo%idate
     call time_methods_date_attributes(bufr_obs_mindate,yyyy,mm,dd,hh,nn,   &
