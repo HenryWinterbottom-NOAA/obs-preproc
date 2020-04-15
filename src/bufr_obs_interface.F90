@@ -80,8 +80,10 @@ contains
     call valid_times(timeinfo)
     
     ! Compute local variables
-    
-    call readwrite_bufrobs(bufr_obs_filename,timeinfo)
+
+    if(is_update_idate_only) call update_idate_bufrobs(timeinfo)
+    if(.not. is_update_idate_only)                                         &
+         & call readwrite_bufrobs(bufr_obs_filename,timeinfo)
 
     !=====================================================================
 
@@ -375,6 +377,110 @@ contains
 
   end subroutine readwrite_bufrobs
 
+  !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! update_idate_bufrobs.f90
+
+  ! DESCRIPTION:
+
+  !
+
+  ! INPUT VARIABLES:
+
+  ! * timeinfo; a FORTRAN timeinfo_struct variable containing the
+  !   Julian day values corresponding to the observation wind
+  !   specified by the user.
+
+  !-----------------------------------------------------------------------
+
+  subroutine update_idate_bufrobs(timeinfo)
+
+    ! Define variables passed to routine
+
+    type(timeinfo_struct)                                               :: timeinfo
+
+    ! Define variables computed within routine
+
+    character(len=10)                                                   :: datestr
+    character(len=8)                                                    :: subset
+    real(r_double)                                                      :: bufrtype(1)
+    real(r_double)                                                      :: dhr
+    real(r_double)                                                      :: obs_jday
+    integer                                                             :: dd
+    integer                                                             :: hh    
+    integer                                                             :: idate
+    integer                                                             :: ireadmg
+    integer                                                             :: ireadsb
+    integer                                                             :: mm
+    integer                                                             :: nn
+    integer                                                             :: ss
+    integer                                                             :: yyyy
+  
+    !=====================================================================
+
+    ! Define local variables
+
+    call init_bufr(bufr_obs_filename(1))
+
+    ! Loop through local variable
+
+    do while(ireadmg(unit_in,subset,idate) .eq. 0)
+
+       ! Define local variables
+
+       call openmg(unit_out,subset,timeinfo%idate)
+
+       ! Loop through local variable
+
+       do while(ireadsb(unit_in) .eq. 0)
+
+          ! Define local variables
+                
+          call ufbcpy(unit_in,unit_out)
+
+          ! Check local variable and proceed accordingly
+
+          if(is_prepbufr) then
+
+             ! Define local variables
+             
+             call ufbint(unit_in,bufrtype,1,1,iret,'DHR')
+             write(datestr,'(i10)') idate
+             read(datestr,'(i4.4,3(i2.2))') yyyy, mm, dd, hh
+             nn = 0
+             ss = 0
+                
+             ! Compute local variables
+
+             call time_methods_julian_day(yyyy,mm,dd,hh,nn,ss,obs_jday)
+             obs_jday = obs_jday + bufrtype(1)/24.0
+             dhr      = (timeinfo%jday - obs_jday)/24.0
+
+             ! Define local variables
+
+             bufrtype(1) = dhr
+             call ufbint(unit_out,bufrtype(1),1,1,iret,'DHR')
+                
+          end if ! if(is_prepbufr)
+
+          ! Define local variables
+
+          call writsb(unit_out)
+
+       end do ! do while(ireadsb(unit_in) .eq. 0)
+          
+    end do ! do while(ireadmg(unit_in,subset,idate) .eq. 0)
+
+    ! Define local variables
+
+    call close_bufr()
+
+    !=====================================================================
+
+  end subroutine update_idate_bufrobs
+    
   !=======================================================================
 
   ! SUBROUTINE:

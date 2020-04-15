@@ -356,6 +356,8 @@ module namelist_interface
   logical                                                               :: &
        & is_sonde_tempdrop = .false.
   logical                                                               :: &
+       & is_update_idate_only = .false. ! NEED
+  logical                                                               :: &
        & mask_land = .false.
   logical                                                               :: &
        & mask_ocean = .false.
@@ -383,8 +385,8 @@ module namelist_interface
        & is_fcst_model, is_recon, is_sonde
   namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
        & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
-       & bufr_tblpath, is_gpsrobufr, is_prepbufr, is_satbufr, mask_land,   &
-       & mask_ocean
+       & bufr_tblpath, is_gpsrobufr, is_prepbufr, is_satbufr,              &
+       & is_update_idate_only, mask_land, mask_ocean
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
