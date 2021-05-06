@@ -198,7 +198,7 @@ class ObsPreProcTCV(object):
         for item in data.split('\n'):
             kwargs = {'ncep_trkr_str': item}
             (event, basin, tcid) = self.get_tcvid(**kwargs)
-            if event is not None:
+            if event.lower() != "none":
                 self.ncep_trkr_dict[event] = dict()
                 for opt in event_opts:
                     self.ncep_trkr_dict[event][opt] = eval(opt)
@@ -243,10 +243,11 @@ class ObsPreProcTCV(object):
                             except IndexError:
                                 pass
                     for ncep_trkr_var in ncep_trkr_vars_dict.keys():
-                        self.ncep_trkr_dict[key][ncep_trkr_var] = eval(
-                            ncep_trkr_var)
+                        if key.lower() != 'none':
+                            self.ncep_trkr_dict[key][ncep_trkr_var] = eval(
+                                ncep_trkr_var)
                     break
-
+        
     def read_tcv(self):
         """
         DESCRIPTION:
@@ -339,7 +340,7 @@ class ObsPreProcTCV(object):
         8. <NCEP tracker maximum wind speed (meters per second)> 
 
         """
-        records_list = ['clat', 'clon', 'pcen', 'vmax']
+        records_list = ['clat', 'clon', 'pcen', 'vmax']        
         with open(self.output_filename, 'wt') as f:
             for event in self.ncep_trkr_dict.keys():
                 info_str = str()
