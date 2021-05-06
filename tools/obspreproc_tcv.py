@@ -194,16 +194,21 @@ class ObsPreProcTCV(object):
         self.ncep_trkr_dict = dict()
         with open(self.ncep_trkr_filename, 'r') as f:
             data = f.read()
+        data = list(filter(None, data.split('\n')))
         event_opts = ['basin', 'tcid']
-        for item in data.split('\n'):
+        for item in data:
             kwargs = {'ncep_trkr_str': item}
             (event, basin, tcid) = self.get_tcvid(**kwargs)
-            if event.lower() != "none":
+            if event is None:
+                pass
+            elif event.lower() == 'none':
+                pass
+            else:
                 self.ncep_trkr_dict[event] = dict()
                 for opt in event_opts:
                     self.ncep_trkr_dict[event][opt] = eval(opt)
         for key in self.ncep_trkr_dict.keys():
-            for item in data.split('\n'):
+            for item in data:
                 basin = self.ncep_trkr_dict[key]['basin']
                 tcid = self.ncep_trkr_dict[key]['tcid']
                 ncep_trkr_str = '%s, %s,' % (basin, tcid)
