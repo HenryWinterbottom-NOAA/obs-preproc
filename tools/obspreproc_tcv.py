@@ -345,9 +345,12 @@ class ObsPreProcTCV(object):
         8. <NCEP tracker maximum wind speed (meters per second)> 
 
         """
-        records_list = ['clat', 'clon', 'pcen', 'vmax']        
+        records_list = ['clat', 'clon', 'pcen', 'vmax']
+        nceptcs = set(self.ncep_trkr_dict.keys())
+        tcvtcs = set(self.tcv_dict.keys())
+        tclist = nceptcs.intersection(tcvtcs)
         with open(self.output_filename, 'wt') as f:
-            for event in self.ncep_trkr_dict.keys():
+            for event in tclist:
                 info_str = str()
                 info_str = info_str+'%s' % event
                 for item in records_list:
