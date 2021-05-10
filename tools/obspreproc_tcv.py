@@ -194,16 +194,21 @@ class ObsPreProcTCV(object):
         self.ncep_trkr_dict = dict()
         with open(self.ncep_trkr_filename, 'r') as f:
             data = f.read()
+        data = list(filter(None, data.split('\n')))
         event_opts = ['basin', 'tcid']
-        for item in data.split('\n'):
+        for item in data:
             kwargs = {'ncep_trkr_str': item}
             (event, basin, tcid) = self.get_tcvid(**kwargs)
-            if event is not None:
+            if event is None:
+                pass
+            elif event.lower() == 'none':
+                pass
+            else:
                 self.ncep_trkr_dict[event] = dict()
                 for opt in event_opts:
                     self.ncep_trkr_dict[event][opt] = eval(opt)
         for key in self.ncep_trkr_dict.keys():
-            for item in data.split('\n'):
+            for item in data:
                 basin = self.ncep_trkr_dict[key]['basin']
                 tcid = self.ncep_trkr_dict[key]['tcid']
                 ncep_trkr_str = '%s, %s,' % (basin, tcid)
@@ -243,10 +248,11 @@ class ObsPreProcTCV(object):
                             except IndexError:
                                 pass
                     for ncep_trkr_var in ncep_trkr_vars_dict.keys():
-                        self.ncep_trkr_dict[key][ncep_trkr_var] = eval(
-                            ncep_trkr_var)
+                        if key.lower() != 'none':
+                            self.ncep_trkr_dict[key][ncep_trkr_var] = eval(
+                                ncep_trkr_var)
                     break
-
+        
     def read_tcv(self):
         """
         DESCRIPTION:
@@ -340,8 +346,11 @@ class ObsPreProcTCV(object):
 
         """
         records_list = ['clat', 'clon', 'pcen', 'vmax']
+        nceptcs = set(self.ncep_trkr_dict.keys())
+        tcvtcs = set(self.tcv_dict.keys())
+        tclist = nceptcs.intersection(tcvtcs)
         with open(self.output_filename, 'wt') as f:
-            for event in self.ncep_trkr_dict.keys():
+            for event in tclist:
                 info_str = str()
                 info_str = info_str+'%s' % event
                 for item in records_list:
