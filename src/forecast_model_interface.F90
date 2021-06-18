@@ -341,7 +341,7 @@ contains
 
     end if ! if(mask_ocean .or. mask_land)
 
-    print*, size(fcstmdl)
+    print*, (fcstmdl(1)%nobs)
     stop
        
     ! Loop through local variable
