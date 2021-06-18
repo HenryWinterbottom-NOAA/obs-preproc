@@ -412,8 +412,6 @@ contains
 
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
                            & nobs)
-
-                      write(100,*) fcstmdl(i)%lat, fcstmdl(i)%lon
                       
                    end if ! if(mask_ocean
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
@@ -427,7 +425,9 @@ contains
                       ! Define local variables
 
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
-                           & nobs)                   
+                           & nobs)
+
+                      write(100,*) fcstmdl(i)%lon, fcstmdl(i)%lat
 
                    end if ! if(mask_land
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
