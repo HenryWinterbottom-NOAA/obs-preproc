@@ -340,6 +340,9 @@ contains
        dst_grid%lon     = fv3%lon
 
     end if ! if(mask_ocean .or. mask_land)
+
+    print*, size(fcstmdl)
+    stop
        
     ! Loop through local variable
 
@@ -367,6 +370,9 @@ contains
           end do ! do j = 1, fcstmdl(i)%nobs
 
        end if ! if((.not. mask_ocean) .and. (.not. mask_land))
+
+       print*, 'here'
+       stop
 
        ! Check local variable and proceed accordingly
        
