@@ -427,7 +427,11 @@ contains
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
                            & nobs)
 
-                      write(100,*) fcstmdl(i)%lon, fcstmdl(i)%lat
+                      if (k .eq. 1) then
+                      
+                         write(100,*) fcstmdl(i)%lon(j), fcstmdl(i)%lat(j)
+
+                      end if
 
                    end if ! if(mask_land
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
