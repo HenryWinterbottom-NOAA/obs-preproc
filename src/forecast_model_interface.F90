@@ -340,10 +340,6 @@ contains
        dst_grid%lon     = fv3%lon
 
     end if ! if(mask_ocean .or. mask_land)
-
-    print*, (fcstmdl(1)%nobs)
-    print*, (fcstmdl(2)%nobs)
-    stop
        
     ! Loop through local variable
 
@@ -371,9 +367,6 @@ contains
           end do ! do j = 1, fcstmdl(i)%nobs
 
        end if ! if((.not. mask_ocean) .and. (.not. mask_land))
-
-       print*, 'here'
-       stop
 
        ! Check local variable and proceed accordingly
        
@@ -419,7 +412,9 @@ contains
 
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
                            & nobs)
-                  
+
+                      write(100,*) fcstmdl(i)%lat, fcstmdl(i)%lon
+                      
                    end if ! if(mask_ocean
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
                           ! .ge. 1.0))
