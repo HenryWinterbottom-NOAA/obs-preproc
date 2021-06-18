@@ -438,7 +438,6 @@ contains
     
     ! Check local variable and proceed accordingly
 
-    print*, 'here'
     if(is_it_there) then
 
        ! Define local variables
