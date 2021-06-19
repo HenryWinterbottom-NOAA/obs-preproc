@@ -54,9 +54,11 @@ module fileio_interface
      module procedure read_vdm
   end interface fileio_interface_read
   interface fileio_interface_varinfo
+     module procedure varinfo_bufrlocs
      module procedure varinfo_sonde_meteo
   end interface fileio_interface_varinfo
   interface fileio_interface_write
+     module procedure write_bufrlocs
      module procedure write_hsa
      module procedure write_sonde_drift_error
      module procedure write_sonde_decode_table
@@ -1405,6 +1407,116 @@ contains
 
   ! SUBROUTINE:
 
+  ! varinfo_bufrlocs.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine defines the FORTRAN varinfo_struct variable used
+  ! to write the appropriate variables contained within the FORTRAN
+  ! fcstmdl_struct variable to external file formats.
+
+  ! INPUT VARIABLES:
+
+  ! * fcstmdl; a FORTRAN fcstmdl_struct variable.
+
+  ! * varinfo; a FORTRAN varinfo_struct variable specifying the
+  !   appropriate fields for external file formats.
+
+  ! OUTPUT VARIABLES:
+
+  ! * varinfo; a FORTRAN varinfo_struct variable specifying the
+  !   appropriate fields for external file formats.
+
+  !-----------------------------------------------------------------------
+
+  subroutine varinfo_bufrlocs(fcstmdl,varinfo)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: fcstmdl
+    type(varinfo_struct)                                                :: varinfo
+
+    ! Define variables computed within routine
+
+    character(len=10),          dimension(:),               allocatable :: dimname
+    integer,                    dimension(:),               allocatable :: dimval
+    integer,                    dimension(:),               allocatable :: dimid
+
+    ! Define counting variables
+
+    integer                                                             :: i
+
+    !=====================================================================
+
+    ! Define local variables
+
+    varinfo%ndims  = 2
+    varinfo%nvars  = 2
+    varinfo%nattrs = 2
+    call variable_interface_setup_struct(varinfo)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(dimname)) allocate(dimname(varinfo%ndims))
+    if(.not. allocated(dimval))  allocate(dimval(varinfo%ndims))
+    if(.not. allocated(dimid))   allocate(dimid(varinfo%ndims))
+
+    ! Define local variables
+
+    dimname(1) = 'nobs'
+    dimval(1)  = fcstmdl%nobs
+    dimname(2) = 'nz'
+    dimval(2)  = fcstmdl%nz
+
+    ! Loop through local variable
+
+    do i = 1, varinfo%ndims
+
+       ! Define local variables
+
+       varinfo%dimval(i)  = dimval(i)
+       varinfo%dimname(i) = dimname(i)
+       dimid(i)           = i
+
+    end do ! do i = 1, varinfo%ndims
+
+    ! Define local variables
+
+    varinfo%varattrs(1,1,1) = 'title'
+    varinfo%varattrs(1,1,2) = 'Longitude'
+    varinfo%varattrs(1,2,1) = 'units'
+    varinfo%varattrs(1,2,2) = 'degrees'   
+    varinfo%varname(1)      = 'lons'
+    varinfo%varndims(1)     = 2
+    varinfo%varnattrs(1)    = 2
+    varinfo%vartype(1)      = 'float'
+    varinfo%vardimid(1,1)   = dimid(1)
+    varinfo%vardimid(1,2)   = dimid(2)    
+    varinfo%varattrs(2,1,1) = 'title'
+    varinfo%varattrs(2,1,2) = 'Latitude'
+    varinfo%varattrs(2,2,1) = 'units'
+    varinfo%varattrs(2,2,2) = 'degrees'   
+    varinfo%varname(2)      = 'lats'
+    varinfo%varndims(2)     = 2
+    varinfo%varnattrs(2)    = 2
+    varinfo%vartype(2)      = 'float'
+    varinfo%vardimid(2,1)   = dimid(1)
+    varinfo%vardimid(2,2)   = dimid(2)
+
+    ! Deallocate memory for local variables
+
+    if(allocated(dimname)) deallocate(dimname)
+    if(allocated(dimval))  deallocate(dimval)
+    if(allocated(dimid))   deallocate(dimid)
+
+    !=====================================================================
+    
+  end subroutine varinfo_bufrlocs
+
+  !=======================================================================
+
+  ! SUBROUTINE:
+
   ! varinfo_sonde_meteo.f90
 
   ! DESCRIPTION:
@@ -1613,6 +1725,109 @@ contains
     !=====================================================================
 
   end subroutine varinfo_sonde_meteo
+
+ !=======================================================================
+
+  ! SUBROUTINE:
+
+  ! write_bufrlocs.f90
+
+  ! DESCRIPTION:
+
+  ! This subroutine writes the contents of the FORTRAN fcstmdl_struct
+  ! variable to an external Network Common Data Format (netCDF) file.
+
+  ! INPUT VARIABLES:
+  
+  ! * fcstmdl; a FORTRAN fcstmdl_struct variable.
+
+  ! * filename; a FORTRAN character string containing the full-path to
+  !   the netCDF file to be created.
+
+  !-----------------------------------------------------------------------
+
+  subroutine write_bufrlocs(fcstmdl,filename)
+
+    ! Define variables passed to routine
+
+    type(fcstmdl_struct)                                                :: fcstmdl
+    character(len=500)                                                  :: filename
+
+    ! Define variables computed within routine
+
+    type(varinfo_struct)                                                :: varinfo
+    character(len=100)                                                  :: attrname
+    character(len=100)                                                  :: varname
+    real(r_double),             dimension(:,:,:),           allocatable :: work
+
+    ! Define counting variables
+
+    integer                                                             :: i, j
+
+    !=====================================================================
+
+    ! Define local variables
+
+    call netcdf_interface_open(filename,.false.,.false.,.true.)
+    call fileio_interface_varinfo(fcstmdl,varinfo)
+    attrname = '_FillValue'
+    call netcdf_interface_putattr(attrname,dble(spval))
+    call netcdf_interface_writedef(varinfo)
+
+    ! Allocate memory for local variables
+
+    if(.not. allocated(work)) allocate(work(2,fcstmdl%nobs,fcstmdl%nz))
+
+    ! Define local variables
+
+    work = spval
+
+    ! Loop through local variable
+
+    do j = 1, fcstmdl%nz
+
+       ! Loop through local variable
+
+       do i = 1, fcstmdl%nobs
+
+          ! Check local variable and proceed accordingly
+
+          if(fcstmdl%usage(i,j)) then
+
+             ! Define local variables
+
+             work(1,i,j) = fcstmdl%lon(i)
+             work(2,i,j) = fcstmdl%lat(i)
+
+          end if ! if(fcstmdl%usage(i,j))
+
+       end do ! do i = 1, fcstmdl%nobs
+
+    end do ! do j = 1, fcstmdl%nz
+       
+    ! Loop through local variable
+
+    do i = 1, size(work(:,1,1))
+
+       ! Define local variables
+
+       varname = varinfo%varname(i)
+       call netcdf_interface_putvar(filename,varname,work(i,:,:))
+       
+    end do ! do i = 1, n1dv
+
+    ! Deallocate memory for local variables
+    
+    if(allocated(work)) deallocate(work)
+    call variable_interface_cleanup_struct(varinfo)
+
+    ! Define local variables
+
+    call netcdf_interface_close()
+
+    !=====================================================================
+
+  end subroutine write_bufrlocs
   
   !=======================================================================
 

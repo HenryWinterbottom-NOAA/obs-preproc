@@ -106,7 +106,9 @@ contains
     if(is_regional) grid%ncoords = (fv3%nx*fv3%ny)
 
     ! Define local variables
-    
+
+    print*, grid%ncoords, size(fv3_orog_filename), fv3%nx, fv3%ny
+    stop
     call variable_interface_setup_struct(grid)
    
     ! Check local variable and proceed accordingly
@@ -303,6 +305,7 @@ contains
     type(grid_struct)                                                   :: src_grid    
     type(kdtree_struct)                                                 :: kdtree
     character(len=500)                                                  :: lbufr_filepath
+    character(len=500)                                                  :: filename
     integer                                                             :: nobs
 
     ! Define counting variables
@@ -361,6 +364,7 @@ contains
 
                 nobs = nobs + 1
                 call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,nobs)
+                fcstmdl(i)%usage(j,k) = .true.
 
              end do ! do k = 1, fcstmdl(i)%nz
 
@@ -412,6 +416,7 @@ contains
 
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
                            & nobs)
+                      fcstmdl(i)%usage(j,k) = .true.
                       
                    end if ! if(mask_ocean
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
@@ -426,12 +431,7 @@ contains
 
                       call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
                            & nobs)
-
-                      if (k .eq. 1) then
-                      
-                         write(100,*) fcstmdl(i)%lon(j), fcstmdl(i)%lat(j)
-
-                      end if
+                      fcstmdl(i)%usage(j,k) = .true.
 
                    end if ! if(mask_land
                           ! .and. (fv3%slmsk(kdtree%idx(j,1))
@@ -445,6 +445,11 @@ contains
           end do ! do j = 1, fcstmdl(i)%nobs
                        
        end if ! if(mask_ocean .or. mask_land)
+
+       ! Define local variables
+
+       write(filename,500) trim(adjustl(datapath)), i
+       call fileio_interface_write(fcstmdl(i),filename)
           
        ! Deallocate memory for local variables
 
@@ -461,6 +466,10 @@ contains
     ! Deallocate memory for local variables
 
     call variable_interface_cleanup_struct(dst_grid)
+
+    ! Define local variables
+
+ 500 format(a,'bufr_obs_locations','_',i2.2,'.nc')   
 
     !=====================================================================
     

@@ -137,6 +137,7 @@ module variable_interface
      integer                                                            :: nrecs     
   end type bufrhdr_struct         ! type bufrhdr_struct
   type fcstmdl_struct
+     logical,                   dimension(:,:),             allocatable :: usage
      real(r_kind),              dimension(:,:),             allocatable :: p
      real(r_kind),              dimension(:,:),             allocatable :: q
      real(r_kind),              dimension(:,:),             allocatable :: t
@@ -453,6 +454,7 @@ contains
 
     ! Deallocate memory for local variables
 
+    if(allocated(grid%usage)) deallocate(grid%usage)
     if(allocated(grid%p))     deallocate(grid%p)
     if(allocated(grid%q))     deallocate(grid%q)
     if(allocated(grid%t))     deallocate(grid%t)
@@ -1099,15 +1101,30 @@ contains
 
     ! Deallocate memory for local variables
 
-    if(.not. allocated(grid%p))     allocate(grid%p(grid%nobs,grid%nz))
-    if(.not. allocated(grid%q))     allocate(grid%q(grid%nobs,grid%nz))
-    if(.not. allocated(grid%t))     allocate(grid%t(grid%nobs,grid%nz))
-    if(.not. allocated(grid%u))     allocate(grid%u(grid%nobs,grid%nz))
-    if(.not. allocated(grid%v))     allocate(grid%v(grid%nobs,grid%nz))
-    if(.not. allocated(grid%lat))   allocate(grid%lat(grid%nobs))
-    if(.not. allocated(grid%lon))   allocate(grid%lon(grid%nobs))
-    if(.not. allocated(grid%slmsk)) allocate(grid%slmsk(grid%nobs))
-    if(.not. allocated(grid%idx))   allocate(grid%idx(grid%nobs))
+    if(.not. allocated(grid%usage))                                        &
+         allocate(grid%usage(grid%nobs,grid%nz))
+    if(.not. allocated(grid%p))                                            &
+         & allocate(grid%p(grid%nobs,grid%nz))
+    if(.not. allocated(grid%q))                                            &
+         & allocate(grid%q(grid%nobs,grid%nz))
+    if(.not. allocated(grid%t))                                            &
+         & allocate(grid%t(grid%nobs,grid%nz))
+    if(.not. allocated(grid%u))                                            &
+         & allocate(grid%u(grid%nobs,grid%nz))
+    if(.not. allocated(grid%v))                                            &
+         & allocate(grid%v(grid%nobs,grid%nz))
+    if(.not. allocated(grid%lat))                                          &
+         & allocate(grid%lat(grid%nobs))
+    if(.not. allocated(grid%lon))                                          &
+         & allocate(grid%lon(grid%nobs))
+    if(.not. allocated(grid%slmsk))                                        &
+         & allocate(grid%slmsk(grid%nobs))
+    if(.not. allocated(grid%idx))                                          &
+         & allocate(grid%idx(grid%nobs))
+
+    ! Initialize local variables
+
+    grid%usage = .false.
     
     !=====================================================================    
 
