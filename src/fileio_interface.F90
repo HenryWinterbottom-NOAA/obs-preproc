@@ -149,7 +149,7 @@ contains
 
     ! Check local variable and proceed accordingly
 
-!    if(is_global)   call read_fv3_global(fv3)
+    if(is_global)   call read_fv3_global(fv3)
     if(is_regional) call read_fv3_regional(fv3,windrotate)
 
     !=====================================================================
@@ -490,7 +490,7 @@ contains
 
           ! Define local variables
 
-          zcoord            = (fv3%nz - i) + 1       
+          zcoord            = (fv3%nz - i) + 1
           fv3%u(:,:,zcoord) = nc_real_3d(:,:,i)
 
        end do ! do i = 1, fv3%nz
@@ -544,7 +544,7 @@ contains
 
           zcoord            = (fv3%nz - i) + 1       
           fv3%v(:,:,zcoord) = nc_real_3d(:,:,i)
-
+          
        end do ! do i = 1, fv3%nz
        
     end do ! do j = 1, size(fv3_dyns_filename)      
@@ -599,7 +599,7 @@ contains
        varname    = 'lat'
        call netcdf_interface_getvar(fv3_orog_filename(i),varname,lat)
        varname    = 'lon'
-       call netcdf_interface_getvar(fv3_orog_filename(i),varname,lon)
+       call netcdf_interface_getvar(fv3_orog_filename(i),varname,lon)       
        l          = strt_coord
 
        ! Loop through local variable
@@ -1502,7 +1502,7 @@ contains
     varinfo%vartype(2)      = 'float'
     varinfo%vardimid(2,1)   = dimid(1)
     varinfo%vardimid(2,2)   = dimid(2)
-
+    
     ! Deallocate memory for local variables
 
     if(allocated(dimname)) deallocate(dimname)
@@ -1828,7 +1828,7 @@ contains
     !=====================================================================
 
   end subroutine write_bufrlocs
-  
+
   !=======================================================================
 
   ! SUBROUTINE:

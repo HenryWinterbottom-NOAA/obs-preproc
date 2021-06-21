@@ -88,6 +88,7 @@ contains
     type(fv3_struct)                                                    :: fv3
     type(grid_struct)                                                   :: grid
     type(windrotate_struct)                                             :: windrotate
+    character(len=500)                                                  :: filename
     
     ! Define counting variables
 
@@ -107,13 +108,11 @@ contains
 
     ! Define local variables
 
-    print*, grid%ncoords, size(fv3_orog_filename), fv3%nx, fv3%ny
-    stop
     call variable_interface_setup_struct(grid)
    
     ! Check local variable and proceed accordingly
     
-    if(is_rotate_winds) call rotate_winds(fv3,windrotate)
+    if(is_rotate_winds .and. is_regional) call rotate_winds(fv3,windrotate)
 
     ! Deallocate memory for local variables
 
@@ -469,8 +468,8 @@ contains
 
     ! Define local variables
 
- 500 format(a,'bufr_obs_locations','_',i2.2,'.nc')   
-
+500 format(a,'bufr_obs_locations','_',i2.2,'.nc')
+ 
     !=====================================================================
     
   end subroutine fv3_bufr
