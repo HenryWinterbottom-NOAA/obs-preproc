@@ -7,7 +7,7 @@ MKDIR         = /bin/mkdir -p
 
 F90           = ifort
 F77           = ifort
-DEBUG         = #-C -g -traceback 
+DEBUG         = -C -g -traceback 
 FCFFLAGS      = -O3 -fp-model precise -assume byterecl -convert big_endian $(DEBUG)
 
 # Compile time libraries.
@@ -17,7 +17,7 @@ FSON          = /Users/henry.winterbottom/software/nwp-libs
 GRIDPROJS     = /Users/henry.winterbottom/software/nwp-libs
 GRIDTRANS     = /Users/henry.winterbottom/software/nwp-libs
 KDTREE        = /Users/henry.winterbottom/software/nwp-libs
-NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran-4.4.5
+NETCDF        = /Users/henry.winterbottom/software/netcdf-fortran/build/fortran
 SLATEC        = /Users/henry.winterbottom/software/nwp-libs
 SONDELIB      = /Users/henry.winterbottom/software/nwp-libs
 SPLINE        = /Users/henry.winterbottom/software/nwp-libs
