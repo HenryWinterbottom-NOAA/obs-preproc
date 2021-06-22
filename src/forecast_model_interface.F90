@@ -303,7 +303,6 @@ contains
     type(grid_struct)                                                   :: dst_grid
     type(grid_struct)                                                   :: src_grid    
     type(kdtree_struct)                                                 :: kdtree
-    type(topogrid_struct)                                               :: topogrid
     character(len=500)                                                  :: lbufr_filepath
     character(len=500)                                                  :: filename
     integer                                                             :: nobs
@@ -357,7 +356,7 @@ contains
 
           end do ! do j = 1, fcstmdl(i)%nobs
 
-       end if ! if((.not. mask_ocean) .and. (.not. mask_land))
+       end if ! if(.not. mask_land)
 
        ! Check local variable and proceed accordingly
        
@@ -419,7 +418,7 @@ contains
                 
           end do ! do j = 1, fcstmdl(i)%nobs
                        
-       end if ! if(mask_ocean .or. mask_land)
+       end if ! if(mask_land)
 
        ! Define local variables
 

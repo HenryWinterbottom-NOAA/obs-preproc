@@ -6,11 +6,13 @@ is_fcst_model = T
 /
 
 &bufrio
-bufr_filepath      = './prepbufr.fv3'
-bufr_info_filepath = '../demo/fcst-model/bufr_info.json'
-bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
-mask_land          = T
-mask_ocean         = F
+bufr_filepath       = './prepbufr.fv3'
+!bufr_info_filepath = '../demo/fcst-model/bufr_info.json'
+bufr_info_filepath  = './bufr_info.json'
+!bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
+bufr_tblpath        = './prepobs_prep.bufrtable'
+mask_land           = T
+max_orog_hght       = 0.0
 /
 
 &fcst_mdl
@@ -21,7 +23,7 @@ fv3_tracer_filename = '/Volumes/Time Machine/regression-tests/obs-preproc/fcst-m
 is_fv3              = T
 is_global           = T
 is_rotate_winds     = T
-!sample_radius       = 150000.0
+sample_radius       = 100000.0
 /
 
 &recon

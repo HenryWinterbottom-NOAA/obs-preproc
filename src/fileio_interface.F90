@@ -51,7 +51,6 @@ module fileio_interface
      module procedure read_hsa
      module procedure read_sonde_filenames
      module procedure read_tcinfo
-     module procedure read_topo
      module procedure read_vdm
   end interface fileio_interface_read
   interface fileio_interface_varinfo
@@ -1276,112 +1275,6 @@ contains
     !=====================================================================
 
   end subroutine read_tcinfo
-
-  !=======================================================================
-
-  ! SUBROUTINE:
-
-  ! read_topo.f90
-
-  ! DESCRIPTION:
-
-  ! This subroutine ingests an external netCDF formatted file
-  ! containing topographical information and populates the FORTRAN
-  ! topogrid variable arrays.
-
-  ! INPUT VARIABLES:
-
-  ! * filename; a FORTRAN character string specifying the path to the
-  !   external file containing the topographical information.
-
-  ! * topogrid; a FORTRAN topogrid_struct variable.
-
-  ! OUTPUT VARIABLES:
-
-  ! * vdm; a FORTRAN topogrid_struct variable now containing the
-  !   topographical grid attributes retrieved from the user specified
-  !   file.
-
-  !-----------------------------------------------------------------------
-
-  subroutine read_topo(filename,topogrid)
-
-    ! Define variables passed to routine
-
-    type(topogrid_struct)                                               :: topogrid
-    character(len=500)                                                  :: filename
-
-    ! Define variables computed within routine
-
-    character(len=100)                                                  :: dimname
-    character(len=100)                                                  :: varname
-    real(r_kind),               dimension(:,:),             allocatable :: topo
-    real(r_kind),               dimension(:),               allocatable :: lat
-    real(r_kind),               dimension(:),               allocatable :: lon
-    integer                                                             :: ncoord
-    integer                                                             :: nx
-    integer                                                             :: ny
-
-    ! Define counting variables
-
-    integer                                                             :: i, j
-    
-    !=====================================================================
-    
-    ! Define local variables
-    
-    dimname     = 'nlon'
-    call netcdf_interface_getdim(filename,dimname,nx)
-    topogrid%nx = nx
-    dimname     = 'nlat'
-    call netcdf_interface_getdim(filename,dimname,ny)
-    topogrid%ny = ny
-    call variable_interface_setup_struct(topogrid)
-
-    ! Allocate memory for local variables
-
-    if(.not. allocated(topo)) allocate(topo(topogrid%nx,topogrid%ny))
-    if(.not. allocated(lat))  allocate(lat(topogrid%ny))
-    if(.not. allocated(lon))  allocate(lon(topogrid%nx))    
-
-    ! Define local variables
-
-    varname = 'elevation'
-    call netcdf_interface_getvar(filename,varname,topo)
-    varname = 'latitude'
-    call netcdf_interface_getvar(filename,varname,lat)
-    varname = 'longitude'
-    call netcdf_interface_getvar(filename,varname,lon)
-    ncoord  = 0
-    
-    ! Loop through local variable
-
-    do j = 1, ny
-
-       ! Loop through local variable
-
-       do i = 1, nx
-
-          ! Define local variables
-
-          ncoord                = ncoord + 1
-          topogrid%topo(ncoord) = topo(i,j)
-          topogrid%lat(ncoord)  = lat(j)
-          topogrid%lon(ncoord)  = lon(i)
-          
-       end do ! do i = 1, nx
-
-    end do ! do j = 1, ny
-       
-    ! Deallocate memory for local variables
-
-    if(allocated(topo)) deallocate(topo)
-    if(allocated(lat))  deallocate(lat)
-    if(allocated(lon))  deallocate(lon)
-    
-    !=====================================================================
-
-  end subroutine read_topo
 
   !=======================================================================
 

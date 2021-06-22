@@ -210,11 +210,6 @@ module namelist_interface
   !   occuring over non-zero topography are masked out -- not written
   !   as a BUFR record).
 
-  ! * mask_ocean; a FORTRAN logical value specifying whether to apply
-  !   a ocean-mask for observation values (i.e., all observations
-  !   occuring over ocean are masked out -- not written as a BUFR
-  !   record).
-
   ! * recon_filelist; a FORTRAN character string specifying the
   !   full-path to the external file containing a list of files
   !   containing aircraft reconnissance derived observations to be
@@ -274,10 +269,6 @@ module namelist_interface
   !   Laboratory (AOML) Hurricane Research Division (HRD) spline
   !   analysis (HSA) values; tempdrop_compute_drift must be true.
 
-  ! * topogrid_filename; a FORTRAN character string specifying the
-  !   path to the netCDF formatted file containing the topographical
-  !   grid information.
-
   ! * wmm_coeff_filepath; a FORTRAN character string containing the
   !   World Magnetic Model (WMM) coefficients that are used to
   !   estimate the variations of the magnetic North Pole relative to
@@ -319,8 +310,6 @@ module namelist_interface
        & tcinfo_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
-  character(len=500)                                                    :: &
-       & topogrid_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & wmm_coeff_filepath = 'NOT USED'
   character(len=19)                                                     :: &
@@ -364,8 +353,6 @@ module namelist_interface
   logical                                                               :: &
        & mask_land = .false.
   logical                                                               :: &
-       & mask_ocean = .false.
-  logical                                                               :: &
        & tempdrop_compute_drift = .false.
   logical                                                               :: &
        & tempdrop_normalize = .false.
@@ -392,7 +379,7 @@ module namelist_interface
   namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
        & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
        & bufr_tblpath, is_gpsrobufr, is_prepbufr, is_satbufr, mask_land,   &
-       & mask_ocean, max_orog_hght, topogrid_filename
+       & max_orog_hght
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
@@ -529,9 +516,7 @@ contains
     write(6,*) 'IS_PREPBUFR                   = ', is_prepbufr
     write(6,*) 'IS_SATBUFR                    = ', is_satbufr    
     write(6,*) 'MASK_LAND                     = ', mask_land
-    write(6,*) 'MASK_OCEAN                    = ', mask_ocean
-    write(6,*) 'TOPOGRID_FILENAME             = ',                         &
-         & trim(adjustl(topogrid_filename))
+    write(6,*) 'MAX_OROG_HGHT                 = ', max_orog_hght
     write(6,*) '/'
     write(6,*) '&FCST_MDL'
 
