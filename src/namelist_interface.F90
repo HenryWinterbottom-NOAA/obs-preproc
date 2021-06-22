@@ -274,6 +274,10 @@ module namelist_interface
   !   Laboratory (AOML) Hurricane Research Division (HRD) spline
   !   analysis (HSA) values; tempdrop_compute_drift must be true.
 
+  ! * topogrid_filename; a FORTRAN character string specifying the
+  !   path to the netCDF formatted file containing the topographical
+  !   grid information.
+
   ! * wmm_coeff_filepath; a FORTRAN character string containing the
   !   World Magnetic Model (WMM) coefficients that are used to
   !   estimate the variations of the magnetic North Pole relative to
@@ -315,6 +319,8 @@ module namelist_interface
        & tcinfo_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & tempdrop_hsa_table_file = './tempdrop-hsa.table'
+  character(len=500)                                                    :: &
+       & topogrid_filename = 'NOT USED'
   character(len=500)                                                    :: &
        & wmm_coeff_filepath = 'NOT USED'
   character(len=19)                                                     :: &
@@ -368,6 +374,8 @@ module namelist_interface
   real(r_kind)                                                          :: &
        & grid_ratio = 1.0
   real(r_kind)                                                          :: &
+       & max_orog_hght = spval
+  real(r_kind)                                                          :: &
        & sample_radius = spval
   real(r_kind)                                                          :: &
        & tc_radius = 600000.0
@@ -384,7 +392,7 @@ module namelist_interface
   namelist /bufrio/     bufr_filepath, bufr_info_filepath,                 &
        & bufr_obs_filename, bufr_obs_maxdate, bufr_obs_mindate,            &
        & bufr_tblpath, is_gpsrobufr, is_prepbufr, is_satbufr, mask_land,   &
-       & mask_ocean
+       & mask_ocean, max_orog_hght, topogrid_filename
   namelist /fcst_mdl/   fv3_dyns_filename, fv3_gridspec_filename,          &
        & fv3_orog_filename, fv3_static_filename, fv3_tracer_filename,      &
        & grid_ratio, is_fv3, is_global, is_regional, is_rotate_winds,      &
@@ -521,7 +529,9 @@ contains
     write(6,*) 'IS_PREPBUFR                   = ', is_prepbufr
     write(6,*) 'IS_SATBUFR                    = ', is_satbufr    
     write(6,*) 'MASK_LAND                     = ', mask_land
-    write(6,*) 'MASK_OCEAN                    = ', mask_ocean    
+    write(6,*) 'MASK_OCEAN                    = ', mask_ocean
+    write(6,*) 'TOPOGRID_FILENAME             = ',                         &
+         & trim(adjustl(topogrid_filename))
     write(6,*) '/'
     write(6,*) '&FCST_MDL'
 

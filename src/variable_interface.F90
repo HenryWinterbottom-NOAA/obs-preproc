@@ -145,6 +145,7 @@ module variable_interface
      real(r_kind),              dimension(:,:),             allocatable :: v
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: orog
      real(r_kind),              dimension(:),               allocatable :: slmsk     
      real(r_kind),              dimension(:),               allocatable :: idx
      real(r_kind)                                                       :: clat
@@ -162,6 +163,7 @@ module variable_interface
      real(r_kind),              dimension(:,:),             allocatable :: va
      real(r_kind),              dimension(:),               allocatable :: lat
      real(r_kind),              dimension(:),               allocatable :: lon
+     real(r_kind),              dimension(:),               allocatable :: orog
      real(r_kind),              dimension(:),               allocatable :: psfc
      real(r_kind),              dimension(:),               allocatable :: slmsk
      integer                                                            :: ncoords
@@ -462,6 +464,7 @@ contains
     if(allocated(grid%v))     deallocate(grid%v)
     if(allocated(grid%lat))   deallocate(grid%lat)
     if(allocated(grid%lon))   deallocate(grid%lon)
+    if(allocated(grid%orog))  deallocate(grid%orog)
     if(allocated(grid%slmsk)) deallocate(grid%slmsk)
     if(allocated(grid%idx))   deallocate(grid%idx)
     
@@ -505,6 +508,7 @@ contains
     if(allocated(grid%va))    deallocate(grid%va)
     if(allocated(grid%lat))   deallocate(grid%lat)
     if(allocated(grid%lon))   deallocate(grid%lon)
+    if(allocated(grid%orog))  deallocate(grid%orog)
     if(allocated(grid%psfc))  deallocate(grid%psfc)
     if(allocated(grid%slmsk)) deallocate(grid%slmsk)
      
@@ -1117,6 +1121,8 @@ contains
          & allocate(grid%lat(grid%nobs))
     if(.not. allocated(grid%lon))                                          &
          & allocate(grid%lon(grid%nobs))
+    if(.not. allocated(grid%orog))                                         &
+         & allocate(grid%orog(grid%nobs))
     if(.not. allocated(grid%slmsk))                                        &
          & allocate(grid%slmsk(grid%nobs))
     if(.not. allocated(grid%idx))                                          &
@@ -1184,6 +1190,8 @@ contains
          & allocate(grid%lat(grid%ncoords))
     if(.not. allocated(grid%lon))                                          &
          & allocate(grid%lon(grid%ncoords))
+    if(.not. allocated(grid%orog))                                         &
+         & allocate(grid%orog(grid%ncoords))
     if(.not. allocated(grid%psfc))                                         &
          & allocate(grid%psfc(grid%ncoords))
     if(.not. allocated(grid%slmsk))                                        &

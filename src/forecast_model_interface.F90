@@ -303,6 +303,7 @@ contains
     type(grid_struct)                                                   :: dst_grid
     type(grid_struct)                                                   :: src_grid    
     type(kdtree_struct)                                                 :: kdtree
+    type(topogrid_struct)                                               :: topogrid
     character(len=500)                                                  :: lbufr_filepath
     character(len=500)                                                  :: filename
     integer                                                             :: nobs
@@ -329,27 +330,14 @@ contains
     call bufrio_interface_open(lbufr_filepath,bufr_tblpath,bufr,.false.,   &
          & .false.,.true.)    
     nobs               = 0
-
-    ! Check local variable and proceed accordingly
-
-    if(mask_ocean .or. mask_land) then
-
-       ! Define local variables
-       
-       dst_grid%ncoords = fv3%ncoords
-       call variable_interface_setup_struct(dst_grid)
-       dst_grid%lat     = fv3%lat
-       dst_grid%lon     = fv3%lon
-
-    end if ! if(mask_ocean .or. mask_land)
-       
+    
     ! Loop through local variable
 
     do i = 1, size(fcstmdl)
-           
+       
        ! Check local variable and proceed accordingly
 
-       if((.not. mask_ocean) .and. (.not. mask_land)) then
+       if(.not. mask_land) then
 
           ! Loop through local variable
 
@@ -373,17 +361,25 @@ contains
 
        ! Check local variable and proceed accordingly
        
-       if(mask_ocean .or. mask_land) then
-          
+       if(mask_land) then
+
           ! Define local variables
 
-          src_grid%ncoords = fcstmdl(i)%nobs
+          src_grid%ncoords = fv3%ncoords
           call variable_interface_setup_struct(src_grid)
-          src_grid%lat     = fcstmdl(i)%lat
-          src_grid%lon     = fcstmdl(i)%lon
-          kdtree%ncoords   = dst_grid%ncoords
+          src_grid%lat     = fv3%lat 
+          src_grid%lon     = fv3%lon          
+          dst_grid%ncoords = fcstmdl(i)%nobs
+          call variable_interface_setup_struct(dst_grid)
+          dst_grid%lat     = fcstmdl(i)%lat 
+          dst_grid%lon     = fcstmdl(i)%lon
+          kdtree%ncoords   = src_grid%ncoords
           kdtree%nn        = 1
           call variable_interface_setup_struct(kdtree)
+
+          ! Check local variable and proceed accordingly
+
+          if(max_orog_hght .eq. spval) max_orog_hght = 0.0
 
           ! Compute local variables
 
@@ -396,48 +392,28 @@ contains
              ! Loop through local variable
 
              do k = 1, fcstmdl(i)%nz
-
-                ! Define local variables
-
-                nobs = nobs + 1
-
+                
                 ! Check local variable and proceed accordingly
 
-                if(fcstmdl(i)%slmsk(j) .eq. fv3%slmsk(kdtree%idx(j,1)))    &
-                     & then
-                
+                if(mask_land) then                
+
                    ! Check local variable and proceed accordingly
 
-                   if(mask_ocean .and. (fv3%slmsk(kdtree%idx(j,1)) .ge.    &
-                        & 1.0) .and. (.not. mask_land)) then
+                   if((fv3%orog(kdtree%idx(j,1)) .le. max_orog_hght) .and. &
+                        & (fcstmdl(i)%orog(j) .le. max_orog_hght)) then
 
                       ! Define local variables
 
-                      call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
-                           & nobs)
+                      nobs                  = nobs + 1
+                      call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,nobs)
                       fcstmdl(i)%usage(j,k) = .true.
                       
-                   end if ! if(mask_ocean
-                          ! .and. (fv3%slmsk(kdtree%idx(j,1))
-                          ! .ge. 1.0))
+                   end if ! if((fv3%orog(kdtree%idx(j,1))
+                          ! .le. max_orog_hght)
+                          ! .and. (fcstmdl(i)%orog(j)
+                          ! .le. max_orog_hght))
 
-                   ! Check local variable and proceed accordingly
-
-                   if(mask_land .and. (fv3%slmsk(kdtree%idx(j,1)) .le.     &
-                        & 0.0) .and. (.not. mask_ocean)) then
-
-                      ! Define local variables
-
-                      call bufr_record(fcstmdl(i),j,k,bufr_info,bufr,      &
-                           & nobs)
-                      fcstmdl(i)%usage(j,k) = .true.
-
-                   end if ! if(mask_land
-                          ! .and. (fv3%slmsk(kdtree%idx(j,1))
-                          ! .le. 0.0))
-                
-                end if ! if(fcstmdl(i)%slmsk(j)
-                       ! .eq. fv3%slmsk(kdtree%idx(j,1)))
+                end if ! if(mask_land)
 
              end do ! do k = 1, fcstmdl(i)%nz
                 
@@ -454,6 +430,7 @@ contains
 
        call variable_interface_cleanup_struct(fcstmdl(i))
        call variable_interface_cleanup_struct(src_grid)
+       call variable_interface_cleanup_struct(dst_grid)
        call variable_interface_cleanup_struct(kdtree)
        
     end do ! do i = 1, size(fcstmdl)
@@ -461,10 +438,6 @@ contains
     ! Define local variables
 
     call bufrio_interface_close(.false.,.true.)
-
-    ! Deallocate memory for local variables
-
-    call variable_interface_cleanup_struct(dst_grid)
 
     ! Define local variables
 
