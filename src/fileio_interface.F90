@@ -621,7 +621,12 @@ contains
        end do ! do j = 1, fv3%ny
 
        ! Define local variables
-       
+
+       varname                          = 'orog_raw'
+       call netcdf_interface_getvar(fv3_orog_filename(i),varname,          &
+            & nc_real_2d)
+       fv3%orog(strt_coord:stop_coord)  =                                  &
+            & reshape(nc_real_2d,shape(fv3%orog(strt_coord:stop_coord)))
        varname                          = 'slmsk'
        call netcdf_interface_getvar(fv3_orog_filename(i),varname,          &
             & nc_real_2d)
@@ -634,6 +639,7 @@ contains
     
     if(debug) write(6,502) 'lat', minval(fv3%lat), maxval(fv3%lat)
     if(debug) write(6,502) 'lon', minval(fv3%lon), maxval(fv3%lon)
+    if(debug) write(6,502) 'orog', minval(fv3%orog), maxval(fv3%orog)
     if(debug) write(6,502) 'slmsk', minval(fv3%slmsk), maxval(fv3%slmsk)
     
     ! Deallocate memory for local variables
@@ -984,6 +990,11 @@ contains
     fv3%slmsk = reshape(nc_real_2d,shape(fv3%slmsk))
     if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%slmsk),      &
          & maxval(fv3%slmsk)
+    varname   = 'orog_raw'
+    call netcdf_interface_getvar(fv3_orog_filename(1),varname,nc_real_2d)
+    fv3%orog  = reshape(nc_real_2d,shape(fv3%slmsk))
+    if(debug) write(6,502) trim(adjustl(varname)), minval(fv3%orog),       &
+         & maxval(fv3%orog)
     
     ! Deallocate memory for local variables
 
@@ -1278,7 +1289,8 @@ contains
 
   ! INPUT VARIABLES:
 
-  ! * filename; a FORTRAN character string specifying the
+  ! * filename; a FORTRAN character string specifying the path to the
+  !   external file containing the vortex data messages.
 
   ! * vdm; a FORTRAN vdm_struct variable.
 

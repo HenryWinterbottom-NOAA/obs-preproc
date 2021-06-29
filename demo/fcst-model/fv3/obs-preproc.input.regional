@@ -10,7 +10,7 @@ bufr_filepath      = './prepbufr.fv3'
 bufr_info_filepath = '../demo/fcst-model/bufr_info.json'
 bufr_tblpath       = '../demo/prepobs_prep.bufrtable'
 mask_land          = T
-mask_ocean         = F
+max_orog_hght      = 0.0
 /
 
 &fcst_mdl
